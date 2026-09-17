@@ -12,6 +12,8 @@ from .frame import FrameError
 from .judge import JudgeUnavailable
 from .llm import LLMError
 from .service import PipelineError, Service
+from .setup_api import bp as setup_bp
+from .setup_api import guard
 from .simulate import RunConfig, RunConfigError, planned_requests
 from .store import NotFound
 
@@ -20,12 +22,16 @@ TOKENS_PER_REQUEST = 1400  # measured ~1,230 on the Lazybee demo; rounded up
 PRICE_PER_M_INPUT = 0.042
 
 
-def create_app(settings: Settings | None = None, service: Service | None = None) -> Flask:
+def create_app(settings: Settings | None = None, service: Service | None = None, allow_remote: bool = False) -> Flask:
+    """allow_remote turns off the local-only guard; only for `serve --host` beyond loopback."""
     settings = settings or load_settings()
     svc = service or Service(settings)
     app = Flask(__name__, static_folder=None)
     app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
+    app.config["JEVFISH_ALLOW_REMOTE"] = allow_remote
     app.extensions["jevfish"] = svc
+    app.before_request(guard)
+    app.register_blueprint(setup_bp)
 
     def body() -> dict:
         data = request.get_json(silent=True)
@@ -65,7 +71,7 @@ def create_app(settings: Settings | None = None, service: Service | None = None)
     # -- meta ------------------------------------------------------------
     @app.get("/api/health")
     def health():
-        return jsonify(ok=True, **settings.health())
+        return jsonify(ok=True, **svc.settings.health())
 
     @app.get("/api/tasks/<tid>")
     def task(tid):
@@ -169,7 +175,7 @@ def create_app(settings: Settings | None = None, service: Service | None = None)
         planned = planned_requests(svc.frame(pid), svc.crowd(pid), cfg)
         return jsonify(
             planned_requests=planned,
-            cap=cfg.max_requests or settings.max_requests,
+            cap=cfg.max_requests or svc.settings.max_requests,
             est_input_tokens=planned * TOKENS_PER_REQUEST,
             est_cost_usd=round(planned * TOKENS_PER_REQUEST / 1_000_000 * PRICE_PER_M_INPUT, 4),
             polls=cfg.polls(),

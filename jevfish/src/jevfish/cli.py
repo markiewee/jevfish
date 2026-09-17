@@ -16,7 +16,10 @@ def cmd_serve(args) -> int:
 
     settings = load_settings()
     print("JevFish settings:", settings.health())
-    app = create_app(settings)
+    local = args.host in ("127.0.0.1", "localhost", "::1")
+    if not local:
+        print("Warning: listening beyond this computer. Anyone who can reach it can change the keys.")
+    app = create_app(settings, allow_remote=not local)
     print(f"Open http://{args.host}:{args.port}")
     app.run(host=args.host, port=args.port, threaded=True, debug=False)
     return 0
