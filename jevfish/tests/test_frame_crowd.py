@@ -1,0 +1,103 @@
+import copy
+import random
+
+import pytest
+
+from jevfish.crowd import build_crowd, build_follows, sample_public
+from jevfish.fakes import frame as fake_frame
+from jevfish.frame import FrameError, build_frame, normalize_frame, variant_subject
+from jevfish.graph import build_graph
+from jevfish.llm import FakeLLM
+
+SEED = """Lazybee runs co-living homes in Thomson.
+
+Mark Wee founded Lazybee with Jason Park. Thomson Grove is one of the homes.
+
+Renters in Singapore compare rooms on price and cleanliness. Acme Realty competes with Lazybee."""
+
+
+@pytest.fixture(scope="module")
+def graph():
+    return build_graph(FakeLLM(), "Will renters book a viewing?", SEED)
+
+
+def test_build_frame_from_graph(graph):
+    f = build_frame(FakeLLM(), "Will renters book a viewing?", graph)
+    assert f["question"] == "Will renters book a viewing?"
+    assert len(f["stance"]["levels"]) == 5
+    assert f["variants"] == [{"id": "base", "label": "As described", "subject": {}}]
+    assert f["opening_posts"] and f["opening_posts"][0]["author"] in {n["name"] for n in graph["nodes"]}
+    assert f["opening_posts"][0]["talking_point"] == "tp01"
+
+
+def test_normalize_frame_cleans_points_and_variants():
+    raw = fake_frame([{"role": "user", "content": "Prediction question: X?"}])
+    raw["talking_points"] += [
+        {"id": "tp00", "text": "duplicate id", "side": "pro"},
+        {"id": "none", "text": "reserved id", "side": "sideways"},
+        {"id": "x", "text": "   "},
+    ]
+    raw["variants"] = [{"id": "A", "label": "Now", "subject": {}}, {"id": "B!", "label": "Cheaper", "subject": {"price": "$1"}},
+                       {"id": "A", "label": "dup"}]
+    f = normalize_frame(raw)
+    ids = [p["id"] for p in f["talking_points"]]
+    assert len(ids) == len(set(ids)) and "tp00_2" in ids and "point_none" in ids
+    assert {p["side"] for p in f["talking_points"]} <= {"pro", "con", "neutral"}
+    assert [v["id"] for v in f["variants"]] == ["A", "B"]
+    assert variant_subject(f, "B")["price"] == "$1"
+    assert variant_subject(f, "B")["source"] == "seed documents"
+    with pytest.raises(FrameError):
+        variant_subject(f, "Z")
+
+
+@pytest.mark.parametrize("mutate", [
+    lambda f: f["outcome"].update(instructions=""),
+    lambda f: f["stance"].update(levels=["one"]),
+    lambda f: f.update(talking_points=[]),
+    lambda f: f.update(stance=None),
+])
+def test_normalize_frame_rejects_unusable_frames(mutate):
+    raw = fake_frame([{"role": "user", "content": "Prediction question: X?"}])
+    mutate(raw)
+    with pytest.raises(FrameError):
+        normalize_frame(raw)
+
+
+def test_build_crowd(graph):
+    progress = []
+    crowd = build_crowd(FakeLLM(), "q", graph, public_size=30, max_stakeholders=3, progress=lambda p, m: progress.append(m))
+    agents = crowd["agents"]
+    assert [a["agent_id"] for a in agents] == list(range(len(agents)))
+    stake = [a for a in agents if a["kind"] == "stakeholder"]
+    public = [a for a in agents if a["kind"] == "public"]
+    assert 1 <= len(stake) <= 3 and len(public) == 30
+    assert all(a["entity_id"] for a in stake)
+    assert {a["segment"] for a in public} <= {"young professionals", "students", "families"}
+    assert all(a["follows"] and a["agent_id"] not in a["follows"] for a in agents)
+    assert "Crowd ready" in progress[-1]
+    again = build_crowd(FakeLLM(), "q", graph, public_size=30, max_stakeholders=3)
+    assert again["agents"] == agents
+
+
+def test_personas_can_exclude_entities(graph):
+    def exclude_all(messages):
+        import re
+        ids = re.findall(r"^- id=(\S+) ", messages[-1]["content"], flags=re.M)
+        return {"personas": [{"entity_id": i, "include": False} for i in ids] + [{"entity_id": "n9999", "include": True}]}
+
+    crowd = build_crowd(FakeLLM({"personas": exclude_all}), "q", graph, public_size=5)
+    assert crowd["stats"]["stakeholders"] == 0 and len(crowd["agents"]) == 5
+
+
+def test_follow_graph_favours_influence():
+    rng = random.Random(1)
+    segs = [{"name": "people", "share": 1, "description": "d", "activity": 0.5, "attributes": {"x": {"a": 1}}}]
+    agents = sample_public(segs, 200, rng, start_id=0)
+    for a in agents[:5]:
+        a["influence"] = 1.0
+    build_follows(agents, {"edges": []}, 5, rng)
+    from collections import Counter
+    counts = Counter(f for a in agents for f in a["follows"])
+    top = sum(counts[i] for i in range(5)) / 5
+    rest = sum(counts[i] for i in range(5, 200)) / 195
+    assert top > 5 * rest

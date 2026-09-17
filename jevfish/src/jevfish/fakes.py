@@ -94,7 +94,10 @@ def frame(messages) -> dict:
                 ]
             )
         ],
-        "opening_posts": [],
+        "opening_posts": [
+            {"author": m, "text": f"{m} here. Let us talk about: {question}", "talking_point": "tp01"}
+            for m in re.findall(r"^- (.+?) \((?:Person|Organization)\):", text, flags=re.M)[:1]
+        ],
         "variants": [],
     }
 

@@ -10,6 +10,7 @@ dependencies = [
     "camel-ai==0.2.78",
     "camel-oasis==0.2.5",
     "flask>=3.0",
+    "mcp==1.24.0",
     "openai>=1.0",
     "pymupdf>=1.24",
     "python-dotenv>=1.0",
