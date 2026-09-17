@@ -1,9 +1,10 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { api } from './lib/api.js'
+import { computed, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { health, healthError } from './lib/health.js'
 
-const health = ref(null)
-const healthError = ref('')
+const route = useRoute()
+const onSetup = computed(() => route.name === 'setup')
 const theme = ref('auto')
 
 try {
@@ -26,22 +27,14 @@ function setTheme(t) {
   }
 }
 
-onMounted(async () => {
-  try {
-    health.value = await api.health()
-  } catch (e) {
-    healthError.value = e.message
-  }
-})
-
 const warnings = computed(() => {
   const h = health.value
   if (!h) return []
   const out = []
   const fake = h.judge === 'fake' || h.llm === 'fake'
   if (fake) out.push('Fake mode: numbers are noise. The server is running with test stand-ins for Jev or the language model.')
-  if (h.judge && h.judge !== 'jev' && h.judge !== 'fake') out.push(`Jev is not set up (${h.judge}). Runs and crowd questions will fail until it is.`)
-  if (h.llm && h.llm !== 'fake' && String(h.llm).startsWith('missing')) out.push(`No language model is set up (${h.llm}). Graphs, crowds, posts and reports need one.`)
+  if (h.judge && h.judge !== 'jev' && h.judge !== 'fake') out.push('Jev is not set up yet. Runs and crowd questions will fail until it is.')
+  if (h.llm && h.llm !== 'fake' && String(h.llm).startsWith('missing')) out.push('No language model is set up yet. Graphs, crowds, posts and reports need one.')
   return out
 })
 </script>
@@ -62,6 +55,7 @@ const warnings = computed(() => {
       </RouterLink>
       <span class="tagline muted">Swarm predictions, one Jev decision per person</span>
       <span class="spacer"></span>
+      <RouterLink to="/setup" class="btn small ghost">Settings</RouterLink>
       <div class="seg" role="group" aria-label="Colour theme">
         <button type="button" :aria-pressed="theme === 'auto'" @click="setTheme('auto')">Auto</button>
         <button type="button" :aria-pressed="theme === 'light'" @click="setTheme('light')">Light</button>
@@ -69,9 +63,11 @@ const warnings = computed(() => {
       </div>
     </div>
   </header>
-  <div v-if="warnings.length || healthError" class="wrap banner-wrap">
+  <div v-if="!onSetup && (warnings.length || healthError)" class="wrap banner-wrap">
     <div v-if="healthError" class="notice error" role="alert">{{ healthError }}</div>
-    <div v-for="w in warnings" :key="w" class="notice warn" role="status">{{ w }}</div>
+    <div v-for="w in warnings" :key="w" class="notice warn" role="status">
+      {{ w }} <RouterLink to="/setup">Open settings</RouterLink>
+    </div>
   </div>
   <main class="wrap main">
     <RouterView />

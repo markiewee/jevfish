@@ -39,6 +39,11 @@ const enc = encodeURIComponent
 
 export const api = {
   health: () => request('GET', '/health'),
+  settings: () => request('GET', '/settings'),
+  saveSettings: (body) => request('PUT', '/settings', body),
+  checkKeys: (body) => request('POST', '/settings/check', body),
+  example: () => request('GET', '/example'),
+  shutdown: () => request('POST', '/shutdown'),
   task: (tid) => request('GET', `/tasks/${enc(tid)}`),
   cancelTask: (tid) => request('POST', `/tasks/${enc(tid)}/cancel`),
 
