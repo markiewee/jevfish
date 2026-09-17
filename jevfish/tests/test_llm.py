@@ -82,3 +82,34 @@ def test_writer_clips_at_sentence_or_word():
     assert clip(long, 60) == "The first sentence runs well past half the limit."
     out = clip("alpha beta gamma delta epsilon zeta eta theta", 20)
     assert out.endswith("...") and len(out) <= 23 and " " in out
+
+
+def test_fast_tasks_use_fast_models():
+    seen = []
+
+    def handler(request):
+        body = json.loads(request.content)
+        seen.append(body["model"])
+        return httpx.Response(200, json={
+            "id": "x", "object": "chat.completion", "created": 0, "model": body["model"],
+            "choices": [{"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "ok"}}],
+        })
+
+    llm = OpenAILLM("k", "http://llm.test/v1", ["big"], fast_models=["small"], sleep=lambda s: None,
+                    http_client=httpx.Client(transport=httpx.MockTransport(handler)))
+    llm.chat("post", [{"role": "user", "content": "x"}])
+    llm.chat("chat", [{"role": "user", "content": "x"}])
+    llm.chat("frame", [{"role": "user", "content": "x"}])
+    assert seen == ["small", "small", "big"]
+
+
+def test_report_dash_cleanup():
+    from jevfish.report import write_report
+    from jevfish.llm import FakeLLM
+
+    fake = FakeLLM({"report": lambda m: "> “quote”\n> — Ana, renter\n\nPrice — not cleaning – matters."})
+    summary = {"question": "q", "outcome_instructions": "o", "stance_levels": ["a", "b"], "crowd": {}, "variants": [],
+               "comparisons": [], "config": {"rounds": 1, "platform": "lite"}}
+    md = write_report(fake, summary, None, {})["markdown"]
+    assert "—" not in md and "–" not in md
+    assert "> Ana, renter" in md and "Price, not cleaning, matters." in md

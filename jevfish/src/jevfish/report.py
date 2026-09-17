@@ -7,6 +7,7 @@ data bundle, and may only use numbers that are in it.
 from __future__ import annotations
 
 import json
+import re
 
 from .graph import digest
 from .llm import LLM
@@ -71,5 +72,6 @@ def write_report(llm: LLM, summary: dict, graph: dict | None, crowd: dict) -> di
         ],
         temperature=0.4,
     )
-    text = text.replace("—", ", ").replace("–", "-")
+    text = re.sub(r"(?m)^(\s*>?\s*)[\u2014\u2013]\s*", r"\1", text)  # attribution dashes at line start
+    text = re.sub(r"\s*[\u2014\u2013]\s*", ", ", text)
     return {"markdown": text, "data": data}

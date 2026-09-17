@@ -18,6 +18,7 @@ from typing import Any, Protocol
 
 Messages = list[dict[str, str]]
 RETRYABLE_STATUS = {408, 409, 429, 500, 502, 503, 504}
+FAST_TASKS = {"post", "chat"}  # high volume, short output: use the fast model list
 
 
 class LLMError(RuntimeError):
@@ -87,11 +88,13 @@ class OpenAILLM:
         max_attempts: int = 5,
         sleep: Callable[[float], None] = time.sleep,
         http_client: Any = None,
+        fast_models: list[str] | None = None,
     ):
         from openai import OpenAI
 
         self.client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=0, http_client=http_client)
         self.models = models
+        self.fast_models = fast_models or models
         self.max_attempts = max_attempts
         self.sleep = sleep
         self.usage = Usage()
@@ -101,7 +104,8 @@ class OpenAILLM:
 
         last: Exception | None = None
         for attempt in range(self.max_attempts):
-            model = self.models[attempt % len(self.models)]  # rotate through fallbacks
+            pool = self.fast_models if task in FAST_TASKS else self.models
+            model = pool[attempt % len(pool)]  # rotate through fallbacks
             kwargs: dict[str, Any] = {"model": model, "messages": messages, "temperature": temperature}
             if max_tokens:
                 kwargs["max_tokens"] = max_tokens
@@ -178,4 +182,4 @@ def build_llm(settings) -> LLM:
         return FakeLLM()
     if not settings.llm_api_key:
         raise LLMError("no LLM configured: set LLM_API_KEY (or GEMINI_API_KEY), or JEVFISH_FAKE_LLM=1")
-    return OpenAILLM(settings.llm_api_key, settings.llm_base_url, settings.llm_models)
+    return OpenAILLM(settings.llm_api_key, settings.llm_base_url, settings.llm_models, fast_models=settings.llm_fast_models)
