@@ -24,7 +24,8 @@ Describe 2 to 6 segments of ordinary people who would react to the question, wit
 Reply with JSON only:
 {"segments": [{"name": "short plural noun phrase", "share": 0.3, "description": "one sentence",
   "activity": 0.5, "attributes": {"attribute_name": {"value": weight, "value": weight}}}]}
-Shares add up to about 1. activity is how often they engage online, 0 to 1. Weights are relative."""
+Shares add up to about 1. activity is how often they engage online, 0 to 1. Weights are relative.
+Example attributes: {"age_band": {"20 to 29": 0.6, "30 to 39": 0.4}, "monthly_budget": {"under S$1,000": 0.3, "S$1,000 to S$1,500": 0.7}}"""
 
 PERSONA_SYSTEM = """You write personas for real actors from a knowledge graph who might take part in an online discussion.
 For each entity decide whether it would plausibly post or react online about the question (include true or false).
@@ -47,6 +48,45 @@ def _clip(x, lo=0.0, hi=1.0, default=0.5) -> float:
         return default
 
 
+def _weights(dist) -> dict[str, float]:
+    """Accept {value: weight}, {value: description}, [values] or [{value, weight}] and return weights."""
+    if isinstance(dist, dict):
+        out = {}
+        for k, v in dist.items():
+            w = _clip(v, 0, 1e9, None) if not isinstance(v, str) else 1.0
+            out[str(k)] = 1.0 if w is None else w
+        return out
+    if isinstance(dist, list):
+        out = {}
+        for item in dist:
+            if isinstance(item, dict):
+                value = item.get("value") or item.get("name") or item.get("label")
+                weight = item.get("weight", item.get("share", item.get("probability", 1)))
+                if value is not None:
+                    out[str(value)] = _clip(weight, 0, 1e9, 1.0)
+            elif item is not None:
+                out[str(item)] = 1.0
+        return out
+    return {}
+
+
+def _attributes(raw) -> dict[str, dict[str, float]]:
+    pairs = []
+    if isinstance(raw, dict):
+        pairs = list(raw.items())
+    elif isinstance(raw, list):
+        for item in raw:
+            if isinstance(item, dict) and (item.get("name") or item.get("attribute")):
+                dist = item.get("values", item.get("options", item.get("distribution", item.get("weights"))))
+                pairs.append((item.get("name") or item.get("attribute"), dist))
+    out = {}
+    for name, dist in pairs:
+        weights = {k: w for k, w in _weights(dist).items() if w > 0}
+        if weights:
+            out[str(name)] = weights
+    return out
+
+
 def plan_public(llm: LLM, requirement: str, graph: dict) -> list[dict]:
     data = llm.json(
         "crowd_plan",
@@ -57,12 +97,7 @@ def plan_public(llm: LLM, requirement: str, graph: dict) -> list[dict]:
     )
     segments = []
     for s in data.get("segments") or []:
-        attrs = {}
-        for name, dist in (s.get("attributes") or {}).items():
-            if isinstance(dist, dict):
-                weights = {str(k): _clip(v, 0, 1e9, 0) for k, v in dist.items()}
-                if sum(weights.values()) > 0:
-                    attrs[str(name)] = weights
+        attrs = _attributes(s.get("attributes"))
         share = _clip(s.get("share"), 0, 1, 0)
         if s.get("name") and share > 0:
             segments.append({
@@ -124,7 +159,7 @@ def sample_public(segments: list[dict], size: int, rng: random.Random, start_id:
             "name": f"{seg['name']} #{i + 1}",
             "username": f"{handle(seg['name'], 'public')}_{i + 1}",
             "bio": seg["description"],
-            "persona": f"One of the {seg['name']}. {seg['description']} {detail}.".strip(),
+            "persona": " ".join(x for x in (f"One of the {seg['name']}.", seg["description"], f"{detail}." if detail else "") if x),
             "segment": seg["name"],
             "attributes": attrs,
             "entity_id": None,

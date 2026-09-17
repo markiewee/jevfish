@@ -101,3 +101,14 @@ def test_follow_graph_favours_influence():
     top = sum(counts[i] for i in range(5)) / 5
     rest = sum(counts[i] for i in range(5, 200)) / 195
     assert top > 5 * rest
+
+
+def test_attribute_shapes_are_tolerated():
+    from jevfish.crowd import _attributes
+
+    assert _attributes({"age": {"20s": 0.6, "30s": 0.4}}) == {"age": {"20s": 0.6, "30s": 0.4}}
+    assert _attributes({"age": ["20s", "30s"]}) == {"age": {"20s": 1.0, "30s": 1.0}}
+    assert _attributes({"age": {"20s": "young adults"}}) == {"age": {"20s": 1.0}}
+    assert _attributes([{"name": "budget", "values": [{"value": "low", "weight": 2}, {"value": "high", "weight": 1}]}]) == {
+        "budget": {"low": 2.0, "high": 1.0}}
+    assert _attributes({"x": {"a": 0}, "y": None}) == {}

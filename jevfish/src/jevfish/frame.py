@@ -31,7 +31,10 @@ Reply with JSON only:
 Rules:
 - 12 to 30 talking points, balanced between pro and con, grounded in the documents.
 - 1 to 3 opening posts written by actors that appear in the graph.
-- variants only when the question compares options; otherwise an empty list. The first variant is the status quo with an empty subject override.
+- variants only when the question compares options; otherwise an empty list. The first variant is the status quo.
+- Every variant, including the status quo, sets the same changing subject keys to its own values (for example price and cleaning), so each option is fully described. Keep facts shared by all options in subject.
+- The outcome question and every stance level must read correctly for every variant: describe the person's reaction to `subject` in general terms and never mention one option's details (no "this price increase").
+- subject holds facts about the offer only, not opinions of groups of people.
 - In instructions, refer to the inputs only as `agent`, `subject` and `feed`, with backticks.
 - Never invent a number that is not in the documents."""
 

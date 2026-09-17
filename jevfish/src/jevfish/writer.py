@@ -16,6 +16,19 @@ First person, plain text, no hashtags, no emojis, no quotation marks around it, 
 Sound like a real person on a forum, not a press release. Reply with the text only."""
 
 
+def clip(text: str, limit: int) -> str:
+    """Cut to the limit at a sentence or word boundary."""
+    text = " ".join(text.split())
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    for mark in (". ", "! ", "? "):
+        i = cut.rfind(mark)
+        if i >= limit // 2:
+            return cut[: i + 1]
+    return cut.rsplit(" ", 1)[0].rstrip(",;:") + "..."
+
+
 def fallback_text(point_text: str | None, stance_label: str) -> str:
     return point_text or f"My take: {stance_label}"
 
@@ -48,11 +61,10 @@ def write(
                 {"role": "user", "content": "\n".join(lines)},
             ],
             temperature=0.9,
-            max_tokens=200,
         )
         text = text.strip().strip('"').strip()
         if not text:
             raise LLMError("empty text")
-        return text[:limit], True
+        return clip(text, limit), True
     except LLMError:
         return fallback_text(point_text, str(stance_label))[:limit], False

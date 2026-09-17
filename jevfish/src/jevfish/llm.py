@@ -54,6 +54,7 @@ class Usage:
     prompt_tokens: int = 0
     completion_tokens: int = 0
     failures: int = 0
+    truncated: int = 0
     by_task: dict[str, int] = field(default_factory=dict)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
@@ -70,6 +71,7 @@ class Usage:
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
             "failures": self.failures,
+            "truncated": self.truncated,
             "by_task": dict(self.by_task),
         }
 
@@ -107,9 +109,12 @@ class OpenAILLM:
                 kwargs["response_format"] = {"type": "json_object"}
             try:
                 response = self.client.chat.completions.create(**kwargs)
-                content = (response.choices[0].message.content or "").strip()
+                choice = response.choices[0]
+                content = (choice.message.content or "").strip()
                 if not content:
                     raise LLMError(f"{model} returned an empty message")
+                if choice.finish_reason == "length" and not json_mode:
+                    self.usage.truncated += 1
                 usage = getattr(response, "usage", None)
                 self.usage.add(task, getattr(usage, "prompt_tokens", 0) or 0, getattr(usage, "completion_tokens", 0) or 0)
                 return content

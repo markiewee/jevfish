@@ -59,7 +59,7 @@ def chat(llm: LLM, frame: dict, agent: dict, variant: str, actions: list[dict], 
         if turn.get("role") in ("user", "assistant") and turn.get("content"):
             messages.append({"role": turn["role"], "content": str(turn["content"])[:2000]})
     messages.append({"role": "user", "content": message})
-    return llm.chat("chat", messages, temperature=0.8, max_tokens=300)
+    return llm.chat("chat", messages, temperature=0.8)
 
 
 def ask_crowd(settings, cache_path, frame: dict, agents: list[dict], variant: str, polls: list[dict], actions: list[dict], question: str, criteria: dict | None = None) -> dict:

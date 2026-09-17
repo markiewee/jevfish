@@ -72,3 +72,13 @@ def test_fake_llm_dispatches_by_task():
     assert fake.json("echo", [{"role": "user", "content": "hi"}]) == {"said": "hi"}
     with pytest.raises(LLMError, match="no handler"):
         fake.chat("unknown", [])
+
+
+def test_writer_clips_at_sentence_or_word():
+    from jevfish.writer import clip
+
+    assert clip("Short one.", 280) == "Short one."
+    long = "The first sentence runs well past half the limit. " + "word " * 80
+    assert clip(long, 60) == "The first sentence runs well past half the limit."
+    out = clip("alpha beta gamma delta epsilon zeta eta theta", 20)
+    assert out.endswith("...") and len(out) <= 23 and " " in out
