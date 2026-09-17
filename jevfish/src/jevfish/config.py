@@ -23,9 +23,14 @@ def _flag(name: str) -> bool:
     return os.environ.get(name, "").strip().lower() in {"1", "true", "yes"}
 
 
+def env_file_path() -> Path:
+    """Where keys are saved: JEVFISH_ENV_FILE, else jevfish/.env."""
+    return Path(os.environ.get("JEVFISH_ENV_FILE") or PACKAGE_ROOT / ".env")
+
+
 def _load_env_file() -> None:
-    path = os.environ.get("JEVFISH_ENV_FILE") or str(PACKAGE_ROOT / ".env")
-    if Path(path).exists():
+    path = env_file_path()
+    if path.exists():
         from dotenv import load_dotenv
 
         load_dotenv(path, override=False)
@@ -55,6 +60,8 @@ class Settings:
 
     def health(self) -> dict:
         return {
+            "app": "jevfish",
+            "setup_needed": not (self.llm_ready and self.judge_ready),
             "judge": "fake" if self.fake_judge else ("jev" if self.typesafe_key else "missing TYPESAFE_API_KEY"),
             "jev_model": self.jev_model,
             "llm": "fake" if self.fake_llm else (self.llm_models[0] if self.llm_api_key else "missing LLM_API_KEY"),
