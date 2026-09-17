@@ -1,3 +1,5 @@
+> **This fork adds JevFish.** [`jevfish/`](jevfish/) is our own rebuild of MiroFish's five-stage pipeline. TypeSafe's Jev decides every simulated person's turn; an LLM only writes the text. The graph is local, so no Zep account is needed, and the prediction is calibrated. See [jevfish/README.md](jevfish/README.md). The original MiroFish code below is kept unchanged as reference.
+
 <div align="center">
 
 <img src="./static/image/MiroFish_logo_compressed.jpeg" alt="MiroFish Logo" width="75%"/>
