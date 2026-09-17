@@ -6,7 +6,8 @@
 #
 # Test hooks: JEVFISH_NO_GUI=1 logs instead of showing dialogs, JEVFISH_NO_OPEN=1 skips the
 # browser, JEVFISH_UV_INSTALLER replaces the uv install script, JEVFISH_PORTS lists ports,
-# JEVFISH_EXTRA_PATH replaces the usual tool folders added to PATH.
+# JEVFISH_EXTRA_PATH replaces the usual tool folders added to PATH, JEVFISH_RETRY_SLEEP sets
+# the pause between install attempts.
 set -u -o pipefail
 
 ROOT="${1:-$(cd "$(dirname "$0")/../.." && pwd)}"
@@ -82,7 +83,17 @@ if [ ! -x "$JF/.venv/bin/jevfish" ] || [ ! -f "$STAMP" ] || [ "$JF/uv.lock" -nt 
   else
     tell "Setting up JevFish. The first start downloads about 1 GB and takes around 5 minutes. Your browser opens when it is ready."
   fi
-  (cd "$JF" && "$UV" sync --frozen) || fail "Installing the Python packages failed. Check the internet connection and open JevFish again."
+  # About 150 downloads: retry, since uv keeps whatever finished and a blip should not end setup.
+  synced=""
+  for attempt in 1 2 3; do
+    if (cd "$JF" && UV_HTTP_TIMEOUT="${UV_HTTP_TIMEOUT:-120}" "$UV" sync --frozen); then
+      synced=1
+      break
+    fi
+    echo "package install attempt $attempt failed"
+    sleep "${JEVFISH_RETRY_SLEEP:-5}"
+  done
+  [ -n "$synced" ] || fail "Installing the Python packages failed. Check the internet connection and open JevFish again."
   touch "$STAMP"
 fi
 

@@ -113,6 +113,19 @@ def test_installs_uv_when_missing(sandbox, tmp_path):
 
 
 @mac_only
+def test_package_install_is_retried(sandbox, tmp_path):
+    flaky = tmp_path / "flaky-uv"
+    marker = tmp_path / "failed-once"
+    flaky.write_text(f'#!/bin/sh\nif [ ! -f "{marker}" ]; then touch "{marker}"; exit 1; fi\nexec "{sandbox["uv"]}" "$@"\n')
+    flaky.chmod(0o755)
+    (sandbox["state"] / "bin").mkdir(parents=True)
+    (sandbox["state"] / "bin" / "uv").symlink_to(flaky)
+    assert launch(sandbox, JEVFISH_RETRY_SLEEP="0").returncode == 0
+    log = sandbox["log"].read_text()
+    assert "package install attempt 1 failed" in log and "ready http://" in log
+
+
+@mac_only
 def test_missing_files_fail_cleanly(sandbox):
     (sandbox["jf"] / "pyproject.toml").unlink()
     assert launch(sandbox).returncode == 1
