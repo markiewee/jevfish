@@ -384,7 +384,7 @@ def provider(env: Mapping[str, str]) -> str:
     return "openai" if env.get("LLM_API_KEY") or env.get("LLM_BASE_URL") else "gemini"
 
 
-def _text(form: Mapping, name: str) -> str:
+def text(form: Mapping, name: str) -> str:
     value = form.get(name)
     return value.strip() if isinstance(value, str) else ""
 
@@ -396,10 +396,10 @@ def updates_from_form(form: Mapping, env: Mapping[str, str]) -> dict[str, str | 
         on = bool(form["test_mode"])
         updates["JEVFISH_FAKE_JUDGE"] = "1" if on else None
         updates["JEVFISH_FAKE_LLM"] = "1" if on else None
-    if _text(form, "typesafe_key"):
-        updates["TYPESAFE_API_KEY"] = _text(form, "typesafe_key")
+    if text(form, "typesafe_key"):
+        updates["TYPESAFE_API_KEY"] = text(form, "typesafe_key")
     choice = form.get("llm_provider")
-    key = _text(form, "llm_key")
+    key = text(form, "llm_key")
     if choice == "gemini":
         if not (key or env.get("GEMINI_API_KEY")):
             raise SetupError("Paste your Gemini API key.")
@@ -407,7 +407,7 @@ def updates_from_form(form: Mapping, env: Mapping[str, str]) -> dict[str, str | 
             updates["GEMINI_API_KEY"] = key
         updates.update(LLM_API_KEY=None, LLM_BASE_URL=None, LLM_MODEL=None)
     elif choice == "openai":
-        base, model = _text(form, "llm_base_url"), _text(form, "llm_model")
+        base, model = text(form, "llm_base_url"), text(form, "llm_model")
         if not base.startswith(("http://", "https://")):
             raise SetupError("The model address must start with http:// or https://.")
         if not model:
@@ -734,17 +734,17 @@ def put_settings():
 @bp.post("/api/settings/check")
 def check():
     form, env = _form(), os.environ
-    jev_key = keys._text(form, "typesafe_key") or env.get("TYPESAFE_API_KEY", "")
+    jev_key = keys.text(form, "typesafe_key") or env.get("TYPESAFE_API_KEY", "")
     jev = keys.check_jev(jev_key, _svc().settings.jev_model) if jev_key else {"ok": False, "message": "No Jev key yet."}
     choice = form.get("llm_provider") or keys.provider(env)
-    typed = keys._text(form, "llm_key")
+    typed = keys.text(form, "llm_key")
     if choice == "gemini":
         key = typed or env.get("GEMINI_API_KEY", "")
         llm = keys.check_llm("gemini", key) if key else {"ok": False, "message": "No Gemini key yet."}
     else:
         key = typed or env.get("LLM_API_KEY", "")
-        base = keys._text(form, "llm_base_url") or env.get("LLM_BASE_URL", "")
-        model = keys._text(form, "llm_model") or env.get("LLM_MODEL", "")
+        base = keys.text(form, "llm_base_url") or env.get("LLM_BASE_URL", "")
+        model = keys.text(form, "llm_model") or env.get("LLM_MODEL", "")
         llm = keys.check_llm("openai", key, base, model) if key and base and model else {
             "ok": False, "message": "Fill in the address, model and key first."}
     return jsonify(jev=jev, llm=llm)
