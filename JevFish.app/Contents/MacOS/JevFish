@@ -1,0 +1,26 @@
+#!/bin/bash
+# Finder runs this when JevFish.app is opened. The work happens in jevfish/launcher/launch.sh.
+here="$(cd "$(dirname "$0")" && pwd)"
+root="$(cd "$here/../../.." && pwd)"
+state="$HOME/Library/Application Support/JevFish"
+has_launcher() { [ -f "$1/jevfish/launcher/launch.sh" ]; }
+
+# Moved out of its folder: use the folder from the last good start.
+if ! has_launcher "$root" && [ -f "$state/repo-path" ]; then
+  root="$(head -n 1 "$state/repo-path")"
+fi
+# A downloaded copy can run from a temporary path (App Translocation). Ask Spotlight.
+if ! has_launcher "$root"; then
+  while IFS= read -r marker; do
+    candidate="$(cd "$(dirname "$marker")/../.." 2>/dev/null && pwd)"
+    if has_launcher "$candidate"; then
+      root="$candidate"
+      break
+    fi
+  done < <(mdfind -name jevfish-folder-marker 2>/dev/null)
+fi
+if ! has_launcher "$root"; then
+  osascript -e 'display alert "JevFish cannot find its files" message "Keep JevFish.app inside the JevFish folder you downloaded and open it from there." as critical' >/dev/null 2>&1
+  exit 1
+fi
+exec /bin/bash "$root/jevfish/launcher/launch.sh" "$root"

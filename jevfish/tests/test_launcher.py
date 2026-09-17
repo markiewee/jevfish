@@ -117,3 +117,35 @@ def test_missing_files_fail_cleanly(sandbox):
     (sandbox["jf"] / "pyproject.toml").unlink()
     assert launch(sandbox).returncode == 1
     assert "error: The JevFish files are missing" in sandbox["log"].read_text()
+
+
+APP = PACKAGE_ROOT.parent / "JevFish.app"
+
+
+@mac_only
+def test_app_bundle_is_valid_and_finds_the_repo(tmp_path):
+    import shutil
+
+    assert subprocess.run(["plutil", "-lint", str(APP / "Contents" / "Info.plist")]).returncode == 0
+    exe = APP / "Contents" / "MacOS" / "JevFish"
+    assert os.access(exe, os.X_OK)
+    assert (APP / "Contents" / "Resources" / "AppIcon.icns").stat().st_size > 10_000
+    repo = tmp_path / "repo"
+    shutil.copytree(APP, repo / "JevFish.app", symlinks=True)
+    stub = repo / "jevfish" / "launcher" / "launch.sh"
+    stub.parent.mkdir(parents=True)
+    out = tmp_path / "got"
+    stub.write_text(f'#!/bin/bash\necho "$1" > "{out}"\n')
+    env = {"HOME": str(tmp_path / "home"), "PATH": "/usr/bin:/bin"}
+    subprocess.run([str(repo / "JevFish.app" / "Contents" / "MacOS" / "JevFish")], env=env, timeout=30, check=True)
+    assert out.read_text().strip() == str(repo)
+    # moved away from the folder: falls back to the remembered path
+    moved = tmp_path / "Applications"
+    moved.mkdir()
+    shutil.move(str(repo / "JevFish.app"), moved / "JevFish.app")
+    state = tmp_path / "home" / "Library" / "Application Support" / "JevFish"
+    state.mkdir(parents=True)
+    (state / "repo-path").write_text(f"{repo}\n")
+    out.unlink()
+    subprocess.run([str(moved / "JevFish.app" / "Contents" / "MacOS" / "JevFish")], env=env, timeout=30, check=True)
+    assert out.read_text().strip() == str(repo)
