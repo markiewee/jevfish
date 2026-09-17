@@ -146,7 +146,7 @@ const recentlySaved = computed(() => props.savedAt && Date.now() - props.savedAt
             <thead><tr><th>Id</th><th>Point</th><th>Side</th><th><span class="sr-only">Remove</span></th></tr></thead>
             <tbody>
               <tr v-for="(p, i) in draft.points" :key="p.key">
-                <td class="nowrap"><span class="pill">{{ p.id || 'new' }}</span></td>
+                <td class="nowrap"><span class="pill pid" :title="p.id">{{ p.id || 'new' }}</span></td>
                 <td class="grow"><input v-model="p.text" type="text" :aria-label="`Talking point ${i + 1}`" /></td>
                 <td>
                   <select v-model="p.side" :aria-label="`Side of point ${i + 1}`">
@@ -199,8 +199,6 @@ const recentlySaved = computed(() => props.savedAt && Date.now() - props.savedAt
 </template>
 
 <style scoped>
-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-legend { padding: 0; margin-bottom: 4px; }
 .kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 0; }
 .kv dt { color: var(--muted); }
 .kv dd { margin: 0; }
@@ -208,6 +206,7 @@ legend { padding: 0; margin-bottom: 4px; }
 .openings { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .openings li { background: var(--panel-2); border-radius: var(--radius-sm); padding: 10px 12px; }
 .points td { vertical-align: middle; }
+.pid { max-width: 120px; overflow: hidden; text-overflow: ellipsis; display: inline-block; line-height: 1.2; }
 .points td.grow { width: 100%; min-width: 260px; }
 .points select { width: auto; }
 .variants { display: grid; gap: 12px; }

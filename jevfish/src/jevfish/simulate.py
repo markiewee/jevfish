@@ -254,6 +254,10 @@ class VariantRun:
             }
             if not res["ok"]:
                 record["error"] = str(res["info"])[:300]
+            elif isinstance(res["info"], dict):
+                for key in ("post_id", "comment_id"):
+                    if res["info"].get(key) is not None and key not in res["args"]:
+                        record[f"created_{key}"] = res["info"][key]
             self.actions.append(record)
             self.ctx.log("actions.jsonl", record)
             mind = self.minds.get(res["agent_id"])
@@ -332,8 +336,14 @@ class VariantRun:
             if 0 in ctx.polls:
                 await self.poll(0)
             openings = ctx.frame.get("opening_posts") or []
-            acts = [Act(self.author_id(o.get("author")), "create_post", {"content": o["text"]}) for o in openings]
-            extras = [{"content": o["text"], "point": o.get("talking_point"), "opening": True} for o in openings]
+            acts, extras = [], []
+            for o in openings:
+                author = self.author_id(o.get("author"))
+                text = o["text"]
+                if author == self.news_id and o.get("author"):
+                    text = f"{o['author']} said: {text}"  # author is not in the crowd; the news desk reports it
+                acts.append(Act(author, "create_post", {"content": text}))
+                extras.append({"content": text, "point": o.get("talking_point"), "opening": True})
             await self.apply(0, acts, extras)
             ctx.tick(f"{self.vid}: {len(acts)} opening post(s) published")
             for r in range(1, cfg.rounds + 1):

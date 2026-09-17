@@ -68,22 +68,39 @@ function build() {
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   sim = forceSimulation(nodes)
     .force('link', forceLink(links).id((d) => d.id).distance(70).strength(0.4))
-    .force('charge', forceManyBody().strength(nodes.length > 150 ? -90 : -220))
+    .force('charge', forceManyBody().strength((nodes.length > 150 ? -90 : -220) * Math.min(1, Math.max(0.45, w / 800))))
     .force('center', forceCenter(w / 2, h / 2))
     .force('x', forceX(w / 2).strength(0.04))
     .force('y', forceY(h / 2).strength(0.06))
     .force('collide', forceCollide((d) => radius(d) + 6))
-    .on('tick', () => (tick.value++))
+    .on('tick', () => {
+      clamp()
+      tick.value++
+    })
   if (reduce) {
     sim.stop()
-    for (let i = 0; i < 300; i++) sim.tick()
+    for (let i = 0; i < 300; i++) {
+      sim.tick()
+      clamp()
+    }
     tick.value++
+  }
+}
+
+// Keep every dot inside the box so nothing drifts out of view
+function clamp() {
+  const w = width.value
+  const h = height.value
+  for (const n of simNodes.value) {
+    const pad = radius(n) + 6
+    n.x = Math.max(pad + 20, Math.min(w - pad - 20, n.x))
+    n.y = Math.max(pad, Math.min(h - pad - 14, n.y))
   }
 }
 
 function measure() {
   if (!box.value) return
-  const w = Math.max(320, box.value.clientWidth)
+  const w = Math.max(240, box.value.clientWidth)
   const h = w < 600 ? 380 : 520
   if (Math.abs(w - width.value) > 4 || h !== height.value) {
     width.value = w

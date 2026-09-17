@@ -132,8 +132,12 @@ a { color: var(--accent-text); text-underline-offset: 2px; }
 .tnum { font-variant-numeric: tabular-nums; }
 .nowrap { white-space: nowrap; }
 .break { overflow-wrap: anywhere; }
-.stack > * + * { margin-top: 12px; }
-.stack-lg > * + * { margin-top: 24px; }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.stack-lg { display: flex; flex-direction: column; gap: 24px; }
+.stack > *, .stack-lg > * { min-width: 0; }
+dl { margin: 0; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+legend { padding: 0; margin-bottom: 8px; }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .row.end { justify-content: flex-end; }
 .spacer { flex: 1; }
@@ -150,6 +154,8 @@ a { color: var(--accent-text); text-underline-offset: 2px; }
 .panel.flush { padding: 0; }
 .panel-head { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; margin-bottom: 16px; }
 .panel-head p { color: var(--muted); font-size: 14px; }
+.panel-head:last-child { margin-bottom: 0; }
+.panel.stack > .panel-head, .panel.stack-lg > .panel-head { margin-bottom: 0; }
 @media (max-width: 600px) { .panel { padding: 16px; } }
 
 .grid-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }

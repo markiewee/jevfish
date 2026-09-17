@@ -27,11 +27,11 @@ const form = reactive({
 })
 // New variants start checked; ones the user unchecked stay unchecked.
 watch(
-  () => (frame.value ? frame.value.variants.map((v) => v.id).join('') : null),
+  () => (frame.value ? frame.value.variants.map((v) => v.id).join('\u0001') : null),
   (ids, old) => {
     if (ids == null) return
-    const all = ids.split('')
-    const before = old ? old.split('') : []
+    const all = ids.split('\u0001')
+    const before = old ? old.split('\u0001') : []
     form.variants = all.filter((id) => !before.includes(id) || form.variants.includes(id))
   },
   { immediate: true },
@@ -168,8 +168,6 @@ const variantList = computed(() => {
 const points = computed(() => Object.fromEntries((frame.value?.talking_points || []).map((p) => [p.id, p.text])))
 const runPct = computed(() => Math.round((liveTask.value?.progress ?? run.value?.progress ?? 0) * 100))
 const STATUS = { queued: 'Queued', running: 'Running', done: 'Finished', partial: 'Partly finished', failed: 'Failed', cancelled: 'Cancelled' }
-const showForm = ref(true)
-watch(() => ws.runs.value.length, (n) => (showForm.value = n === 0 || showForm.value), { immediate: true })
 onBeforeUnmount(() => estSeq++)
 </script>
 
@@ -290,7 +288,7 @@ onBeforeUnmount(() => estSeq++)
         <div class="progress" role="progressbar" :aria-valuenow="runPct" aria-valuemin="0" aria-valuemax="100"><div :style="{ width: runPct + '%' }"></div></div>
         <p class="small muted break">{{ liveTask?.message || run.message }}</p>
       </div>
-      <TaskStatus v-else-if="liveTask && liveTask.status !== 'done'" :task="liveTask" />
+      <TaskStatus v-else-if="liveTask && liveTask.status === 'failed' && !run.error" :task="liveTask" />
       <p v-if="run.status === 'failed' && run.error" class="notice error break">{{ run.error }}</p>
       <p v-if="run.status === 'cancelled'" class="notice warn">This run was cancelled before it finished.</p>
       <p v-if="detailError" class="notice error">{{ detailError }}</p>
@@ -313,7 +311,6 @@ onBeforeUnmount(() => estSeq++)
 <style scoped>
 .run-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; }
 @media (max-width: 900px) { .run-grid { grid-template-columns: minmax(0, 1fr); } }
-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 legend.label, .label { font-size: 13px; font-weight: 600; color: var(--ink-2); padding: 0; }
 .checks { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .inj { display: grid; grid-template-columns: 80px minmax(0, 1fr) 160px auto; gap: 8px; align-items: end; }

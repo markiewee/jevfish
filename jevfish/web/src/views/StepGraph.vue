@@ -320,7 +320,7 @@ function typeColor(t) {
                 <p class="small">
                   <button v-if="e.source !== selectedId" class="linkish" type="button" @click="select(e.source)">{{ byId[e.source]?.name }}</button>
                   <strong v-else>{{ selected.name }}</strong>
-                  <span class="muted"> {{ e.type.toLowerCase().replace(/_/g, ' ') }} </span>
+                  <span class="muted rel">{{ e.type.toLowerCase().replace(/_/g, ' ') }}</span>
                   <button v-if="e.target !== selectedId" class="linkish" type="button" @click="select(e.target)">{{ byId[e.target]?.name }}</button>
                   <strong v-else>{{ selected.name }}</strong>
                 </p>
@@ -366,5 +366,6 @@ tr.picked td { background: var(--accent-soft) !important; }
 .detail { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
 .facts { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 320px; overflow-y: auto; }
 .facts li { padding: 8px 10px; border-radius: var(--radius-sm); background: var(--panel-2); }
+.rel { margin: 0 0.35em; }
 .facts li.hit { box-shadow: inset 0 0 0 2px var(--ink-2); }
 </style>

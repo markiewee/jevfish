@@ -177,3 +177,16 @@ def test_pdf_upload(tmp_path):
     svc.add_file(p["id"], "rules.pdf", data)
     assert "Delta Housing" in svc.store.seed_text(p["id"])
     assert json.loads((svc.store.project_dir(p["id"]) / "project.json").read_text())["sources"][0]["name"] == "rules.pdf"
+
+
+def test_opening_post_by_outsider_is_credited(prepared):
+    svc, pid = prepared
+    frame = svc.frame(pid)
+    frame["opening_posts"] = [{"author": "Somebody Not In Crowd", "text": "Big news today", "talking_point": None}]
+    svc.update_frame(pid, frame)
+    run, task = svc.start_run(pid, {"platform": "lite", "rounds": 1, "agents_per_round_min": 2, "agents_per_round_max": 2})
+    wait(task)
+    opening = [a for a in svc.actions(pid, run["id"]) if a.get("opening")][0]
+    assert opening["agent_name"] == "News desk"
+    assert opening["content"] == "Somebody Not In Crowd said: Big news today"
+    assert opening["created_post_id"] >= 1

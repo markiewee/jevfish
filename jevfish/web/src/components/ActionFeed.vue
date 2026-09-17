@@ -66,7 +66,7 @@ onBeforeUnmount(() => {
   gen++
 })
 
-const key = (v, author, text) => `${v}${author}${String(text || '').slice(0, 200)}`
+const key = (v, author, text) => `${v}\u0001${author}\u0001${String(text || '').slice(0, 200)}`
 
 // Tally reactions onto the posts they point at
 const tallies = computed(() => {
@@ -182,7 +182,7 @@ function when(a) {
           </p>
           <p class="content break">{{ a.content }}</p>
           <div class="foot small">
-            <span v-if="a.point" class="pill" :title="points[a.point] || ''">{{ a.point }}<template v-if="points[a.point]">: {{ excerpt(points[a.point], 40) }}</template></span>
+            <span v-if="a.point && a.point !== 'none'" class="pill" :title="points[a.point] || ''">{{ a.point }}<template v-if="points[a.point]">: {{ excerpt(points[a.point], 40) }}</template></span>
             <template v-if="kind(a) === 'post' && tallies[key(a.variant, a.agent_name, a.content)]">
               <span class="muted tnum">{{ tallies[key(a.variant, a.agent_name, a.content)].likes }} likes</span>
               <span v-if="tallies[key(a.variant, a.agent_name, a.content)].dislikes" class="muted tnum">{{ tallies[key(a.variant, a.agent_name, a.content)].dislikes }} dislikes</span>

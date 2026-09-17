@@ -244,7 +244,6 @@ provide(WS_KEY, {
 .back { color: var(--muted); text-decoration: none; display: inline-block; }
 .back::before { content: '\2039'; margin-right: 6px; }
 .back:hover { color: var(--ink); }
-.stack-lg > .back + * { margin-top: 12px; }
 .ws-head { max-width: 900px; }
 .title-row { gap: 12px; }
 .title-row h1 { font-size: 24px; }

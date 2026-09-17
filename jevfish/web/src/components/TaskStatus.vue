@@ -5,6 +5,7 @@ const props = defineProps({
   task: { type: Object, default: null },
   label: { type: String, default: '' },
   cancellable: { type: Boolean, default: false },
+  hideDone: { type: Boolean, default: false },
 })
 defineEmits(['cancel'])
 
@@ -14,7 +15,7 @@ const pctDone = computed(() => Math.round(Math.max(0, Math.min(1, props.task?.pr
 </script>
 
 <template>
-  <div v-if="task" class="task" :class="task.status" role="status" aria-live="polite">
+  <div v-if="task && !(hideDone && task.status === 'done')" class="task" :class="task.status" role="status" aria-live="polite">
     <div class="task-top">
       <strong>{{ label || STATUS[task.status] }}</strong>
       <span class="muted small tnum" v-if="active">{{ pctDone }}%</span>
