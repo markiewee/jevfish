@@ -11,8 +11,16 @@ type Task = { id: string; kind: "graph"|"prepare"|"run"|"report"; project_id: st
 ```
 
 ## Meta
-- `GET /api/health` returns `{ok, judge: "jev"|"fake"|"missing TYPESAFE_API_KEY", jev_model, llm: "<model>"|"fake"|"missing LLM_API_KEY", llm_fallbacks: string[], llm_base_url, data_dir}`.
+- `GET /api/health` returns `{ok, app: "jevfish", setup_needed, judge: "jev"|"fake"|"missing TYPESAFE_API_KEY", jev_model, llm: "<model>"|"fake"|"missing LLM_API_KEY", llm_fallbacks: string[], llm_base_url, data_dir}`.
+- **Local only:** every `/api/` request must be addressed to `127.0.0.1`, `localhost` or `::1`, and requests that change something must not come from another site's `Origin`. Anything else gets 403. `jevfish serve --host` beyond loopback turns the guard off and says so.
 - `GET /api/tasks/<tid>` returns a Task. `POST /api/tasks/<tid>/cancel` cancels it and returns the Task.
+
+## Setup
+- `GET /api/settings` returns `{env_file, test_mode, setup_needed, typesafe_key, llm_provider: "gemini"|"openai", gemini_key, llm_key, llm_base_url, llm_model, active_tasks}`. Saved keys come back as the last four characters (`""` when the key is too short to hint at, `null` when none is saved). Full keys are never sent to the browser.
+- `PUT /api/settings` saves keys and returns the same shape. Fields: `typesafe_key`, `llm_provider`, `llm_key`, `llm_base_url`, `llm_model`, `test_mode`. A blank key keeps the saved one. Writes `jevfish/.env` (mode 600) and applies at once, with no restart. Jobs already running keep the keys they started with.
+- `POST /api/settings/check` checks the keys in the body, falling back to the saved ones, and returns `{jev: {ok, message}, llm: {ok, message}}`. Both checks are free: listing models for Jev and Gemini, a one-token request for other providers.
+- `GET /api/example` returns `{name, requirement, seed_text}` for the example project.
+- `POST /api/shutdown` stops the server, right after answering `{ok: true}`.
 
 ## Projects
 ```ts

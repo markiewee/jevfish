@@ -1,4 +1,6 @@
 > **This fork adds JevFish.** [`jevfish/`](jevfish/) is our own rebuild of MiroFish's five-stage pipeline. TypeSafe's Jev decides every simulated person's turn; an LLM only writes the text. The graph is local, so no Zep account is needed, and the prediction is calibrated. See [jevfish/README.md](jevfish/README.md). The original MiroFish code below is kept unchanged as reference.
+>
+> **To run it on a Mac, double-click `JevFish.app` in this folder.** The first start installs everything it needs and opens JevFish in your browser; the app then asks for your Jev and language-model keys on screen. No terminal, no Homebrew, no Node. If macOS blocks the app because you downloaded the ZIP, open System Settings, Privacy & Security, and click Open Anyway. Full instructions: [jevfish/README.md](jevfish/README.md).
 
 <div align="center">
 
