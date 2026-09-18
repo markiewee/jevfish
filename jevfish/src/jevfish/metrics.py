@@ -13,26 +13,90 @@ from collections import Counter, defaultdict
 Z90 = 1.6449
 
 
-def summarize_poll(records: list[dict], n_levels: int) -> dict:
+ESTIMANDS = {
+    "acceptance_rate_independent": "acceptance rate among the described crowd",
+    "choice_share_of_described_set": "share of the described option set",
+    "event_probability": "probability of the event",
+}
+
+
+def summarize_poll(
+    records: list[dict],
+    n_levels: int,
+    *,
+    calibration=None,
+    honest_half_width: float | None = None,
+    estimand: str = "acceptance_rate_independent",
+) -> dict:
+    """Summarise one poll.
+
+    `mean_outcome` is NOT a real-world rate, and which quantity it is depends on how the
+    question was asked. A NoulQ judges each person on their own
+    (`acceptance_rate_independent`); a ChoiceQ allocates people across a fixed option set
+    (`choice_share_of_described_set`). One calibration map cannot serve both.
+
+    Neither is occupancy. A listing with a 22 percent choice share can sit in a flat
+    running at 89 percent occupancy, because occupancy is arrival volume over supply. The
+    market-research trade has known this for decades: share of preference assumes equal
+    awareness and equal distribution, and reaching market share needs availability,
+    awareness, a scale exponent and a share adjustment. JevFish has none of those inputs,
+    so a calibration map fitted on resolved outcomes is the only honest bridge.
+
+    With no `honest_half_width` the interval is Poisson-binomial, which covers sampling
+    noise inside a synthetic crowd and NOT model, frame or crowd-composition error. On the
+    Pureloft backtest the real error was 11.5x that half-width, and it shrinks as
+    1/sqrt(n) while the real error does not move, so more people means more confidence and
+    the same error. `interval_covers` always says which of the two you are looking at.
+    """
+    from .calibrate import apply_map
+
+    if estimand not in ESTIMANDS:
+        raise ValueError(
+            f"unknown estimand '{estimand}'; use one of {', '.join(ESTIMANDS)}. "
+            "A real-world rate such as occupancy is not an estimand JevFish produces; "
+            "it is what a calibration map converts an estimand into."
+        )
     n = len(records)
-    ps = [r["outcome_p"] for r in records]
+    raw = [r["outcome_p"] for r in records]
+    ps = apply_map(raw, calibration) if calibration is not None else raw
+    calibrated = calibration is not None and not calibration.is_identity
+
     expected = sum(ps)
     variance = sum(p * (1 - p) for p in ps)
-    half = Z90 * math.sqrt(variance)
+    mean_outcome = expected / n if n else 0.0
+
+    if honest_half_width is not None:
+        low = max(0.0, mean_outcome - honest_half_width) * n
+        high = min(1.0, mean_outcome + honest_half_width) * n
+        covers = "our own past errors on resolved outcomes"
+    else:
+        half = Z90 * math.sqrt(variance)
+        low, high = max(0.0, expected - half), min(float(n), expected + half)
+        covers = "sampling noise in the synthetic crowd only"
+
     hist = [0] * n_levels
     for r in records:
         hist[min(n_levels - 1, max(0, int(r["stance"] + 0.5)))] += 1
-    return {
+
+    out = {
         "n": n,
-        "mean_outcome": expected / n if n else 0.0,
+        "mean_outcome": mean_outcome,
         "expected_yes": expected,
         "variance": variance,
-        "low": max(0.0, expected - half),
-        "high": min(float(n), expected + half),
+        "low": low,
+        "high": high,
         "likely_yes": sum(p >= 0.5 for p in ps),
         "stance_mean": sum(r["stance"] for r in records) / n if n else 0.0,
         "stance_hist": hist,
+        "estimand": estimand,
+        "estimand_label": ESTIMANDS[estimand],
+        "calibrated": calibrated,
+        "interval_covers": covers,
     }
+    if calibration is not None:
+        out["mean_outcome_raw"] = sum(raw) / n if n else 0.0
+        out["calibration_note"] = calibration.describe()
+    return out
 
 
 def compare(finals: dict[str, dict]) -> list[dict]:
