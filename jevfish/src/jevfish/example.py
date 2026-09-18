@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from .config import PACKAGE_ROOT
+from .assets import example_seed
 
-PATH = PACKAGE_ROOT / "examples" / "lazybee-cleaning.md"
+PATH = example_seed()
 NAME = "Lazybee cleaning upgrade (example)"
 QUESTION = ("If Lazybee adds weekly professional cleaning for S$100 more a month (example figure), "
             "will more Singapore renters book a viewing?")

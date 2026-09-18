@@ -1,4 +1,5 @@
 import os
+import pathlib
 import re
 import signal
 import socket
@@ -7,9 +8,11 @@ import sys
 
 import pytest
 
-from jevfish.config import PACKAGE_ROOT
+# The launcher is a property of the REPO layout, not of the installed package, so it
+# resolves from this test file rather than from jevfish.assets.
+JEVFISH_DIR = pathlib.Path(__file__).resolve().parents[1]
 
-LAUNCH = PACKAGE_ROOT / "launcher" / "launch.sh"
+LAUNCH = JEVFISH_DIR / "launcher" / "launch.sh"
 mac_only = pytest.mark.skipif(sys.platform != "darwin", reason="Mac launcher")
 
 FAKE_SERVER = """#!{python}
@@ -37,7 +40,7 @@ chmod +x .venv/bin/jevfish
 
 
 def test_built_web_app_is_present():
-    dist = PACKAGE_ROOT / "web" / "dist"
+    dist = JEVFISH_DIR / "src" / "jevfish" / "web_dist"
     html = (dist / "index.html").read_text()
     assets = re.findall(r'(?:src|href)="/(assets/[^"]+)"', html)
     assert assets and all((dist / a).is_file() for a in assets)
@@ -132,7 +135,7 @@ def test_missing_files_fail_cleanly(sandbox):
     assert "error: The JevFish files are missing" in sandbox["log"].read_text()
 
 
-APP = PACKAGE_ROOT.parent / "JevFish.app"
+APP = JEVFISH_DIR.parent / "JevFish.app"
 
 
 @mac_only

@@ -5,26 +5,41 @@ description = "JevFish: a MiroFish-style swarm prediction engine where TypeSafe 
 authors = [
     { name = "Mark Wee", email = "markwee99@gmail.com" }
 ]
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.12"
+# Core: HTTP calls to Jev and to any OpenAI-compatible endpoint. No local inference, so
+# no machine-learning stack. Measured 18 Sep 2026: the old dependency list installed
+# 1.1 GB across 161 packages, of which torch alone was 553 MB and was never called.
+# camel-oasis pulled it in transitively via sentence-transformers.
 dependencies = [
-    "camel-ai==0.2.78",
-    "camel-oasis==0.2.5",
     "flask>=3.0",
-    "mcp==1.24.0",
     "openai>=1.0",
-    "pymupdf>=1.24",
     "python-dotenv>=1.0",
     "typesafe-sdk>=0.6.0",
 ]
+
+[project.optional-dependencies]
+# PDF seed upload. pypdf is BSD-3-Clause; the pymupdf it replaces is AGPL-3.0 or a paid
+# Artifex licence, so this also removes a copyleft obligation unrelated to MiroFish.
+pdf = ["pypdf>=5.0"]
+# The OASIS reddit and twitter feeds. Large, and only needed for those two platforms:
+# the default "lite" platform gives the same prediction without the social simulation.
+oasis = ["camel-ai==0.2.78", "camel-oasis==0.2.5"]
+all = ["jevfish[pdf,oasis]"]
 
 [build-system]
 requires = ["uv_build>=0.11.21,<0.13.0"]
 build-backend = "uv_build"
 
+# The built web app and the example seeds must travel in the wheel. Without this the
+# installed app serves / as a 404 and the "Fill in the example" button breaks.
+[tool.uv.build-backend]
+source-include = ["src/jevfish/web_dist/**", "src/jevfish/examples/**"]
+
 [dependency-groups]
 dev = [
     "pytest>=8.2.0",
     "pytest-asyncio>=0.23.6",
+    "pypdf>=5.0",          # so the PDF path stays covered by the suite
 ]
 
 [project.scripts]

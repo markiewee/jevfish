@@ -44,6 +44,34 @@ def prepared(tmp_path, monkeypatch):
     return svc, p["id"]
 
 
+def tiny_pdf(text: str) -> bytes:
+    """A minimal valid PDF with extractable text, built by hand.
+
+    pypdf reads PDFs but cannot author text, and pulling in a PDF writer just for one
+    test would undo the point of making the pdf extra optional. 561 bytes.
+    """
+    content = f"BT /F1 12 Tf 20 100 Td ({text}) Tj ET".encode()
+    objs = [
+        b"<</Type/Catalog/Pages 2 0 R>>",
+        b"<</Type/Pages/Kids[3 0 R]/Count 1>>",
+        b"<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]/Contents 4 0 R"
+        b"/Resources<</Font<</F1 5 0 R>>>>>>",
+        b"<</Length %d>>stream\n" % len(content) + content + b"\nendstream",
+        b"<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for i, body in enumerate(objs, start=1):
+        offsets.append(len(out))
+        out += b"%d 0 obj" % i + body + b"endobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n" % (len(objs) + 1) + b"0000000000 65535 f \n"
+    for off in offsets:
+        out += b"%010d 00000 n \n" % off
+    out += b"trailer<</Size %d/Root 1 0 R>>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xref)
+    return bytes(out)
+
+
 def two_variant_frame(svc, pid):
     """Two options that differ only in a stated quantity.
 
@@ -61,7 +89,12 @@ def two_variant_frame(svc, pid):
     svc.update_frame(pid, frame)
 
 
-@pytest.mark.parametrize("platform", ["lite", "reddit"])
+from .extras import needs_oasis, needs_pypdf  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    "platform", ["lite", pytest.param("reddit", marks=needs_oasis)]
+)
 def test_full_pipeline(prepared, platform):
     svc, pid = prepared
     two_variant_frame(svc, pid)
@@ -173,13 +206,9 @@ def test_frame_edit_validation(prepared):
     assert svc.update_frame(pid, good) == good
 
 
+@needs_pypdf
 def test_pdf_upload(tmp_path):
-    import fitz
-
-    doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((72, 72), "Delta Housing announced new rules.")
-    data = doc.tobytes()
+    data = tiny_pdf("Delta Housing announced new rules.")
     svc = Service(settings(tmp_path), llm=FakeLLM())
     p = svc.create_project("pdf", "Will tenants accept the rules?")
     svc.add_file(p["id"], "rules.pdf", data)

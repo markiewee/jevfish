@@ -19,7 +19,12 @@ _OASIS_LOGGERS = ["oasis.env", "social.agent", "social.twitter", "social.rec", "
 
 
 def _import_oasis():
-    import oasis  # noqa: F401  (import creates ./log and file handlers)
+    try:
+        import oasis  # noqa: F401  (import creates ./log and file handlers)
+    except ModuleNotFoundError as e:
+        from .base import OASIS_HINT
+
+        raise RuntimeError(OASIS_HINT.format(kind="reddit or twitter")) from e
 
     for name in _OASIS_LOGGERS:
         logger = logging.getLogger(name)

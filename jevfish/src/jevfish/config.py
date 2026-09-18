@@ -12,11 +12,12 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import assets as _assets
+
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 GEMINI_MODEL = "gemini-flash-latest"
 GEMINI_FALLBACKS = ["gemini-2.5-flash", "gemini-flash-lite-latest"]
 GEMINI_FAST = ["gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest"]
-PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _flag(name: str) -> bool:
@@ -24,8 +25,10 @@ def _flag(name: str) -> bool:
 
 
 def env_file_path() -> Path:
-    """Where keys are saved: JEVFISH_ENV_FILE, else jevfish/.env."""
-    return Path(os.environ.get("JEVFISH_ENV_FILE") or PACKAGE_ROOT / ".env")
+    """Where keys are saved: JEVFISH_ENV_FILE, else the per-user data directory."""
+    from .assets import env_file
+
+    return env_file()
 
 
 def _load_env_file() -> None:
@@ -88,7 +91,7 @@ def load_settings() -> Settings:
         fast = fast or list(GEMINI_FAST)
     models = [model or "gpt-4o-mini", *[f for f in fallbacks if f != model]]
     return Settings(
-        data_dir=Path(env.get("JEVFISH_DATA_DIR", "").strip() or PACKAGE_ROOT / "data"),
+        data_dir=_assets.data_dir(),
         typesafe_key=env.get("TYPESAFE_API_KEY", "").strip() or None,
         jev_model=env.get("JEV_MODEL", "").strip() or "jev-latest",
         fake_judge=_flag("JEVFISH_FAKE_JUDGE"),

@@ -9,7 +9,20 @@ AGENTS = [
 ]
 
 
-@pytest.fixture(params=["lite", "reddit"])
+from .extras import HAS_OASIS  # noqa: E402
+
+
+@pytest.fixture(
+    params=[
+        "lite",
+        pytest.param(
+            "reddit",
+            marks=pytest.mark.skipif(
+                not HAS_OASIS, reason="needs the oasis extra: uv sync --extra oasis"
+            ),
+        ),
+    ]
+)
 async def platform(request, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)  # OASIS creates ./log on import
     p = make_platform(request.param, tmp_path / request.param)
