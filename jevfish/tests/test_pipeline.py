@@ -198,3 +198,60 @@ def test_opening_post_by_outsider_is_credited(prepared):
     assert opening["agent_name"] == "News desk"
     assert opening["content"] == "Somebody Not In Crowd said: Big news today"
     assert opening["created_post_id"] >= 1
+
+
+def test_a_run_reports_its_estimand_and_says_it_is_uncalibrated(prepared):
+    """With no resolved outcomes on file, a run must say so rather than imply precision."""
+    svc, pid = prepared
+    run, task = svc.start_run(pid, {"platform": "lite", "rounds": 1, "poll_rounds": [0]})
+    wait(task)
+    final = svc.run(pid, run["id"])["summary"]["variants"][0]["final"]
+    assert final["estimand"] == "acceptance_rate_independent"
+    assert final["estimand_label"] == "acceptance rate among the described crowd"
+    assert final["calibrated"] is False
+    assert final["interval_covers"] == "sampling noise in the synthetic crowd only"
+    assert "uncalibrated" in final["calibration_note"]
+
+
+def test_a_recorded_outcome_calibrates_the_next_run(prepared):
+    """The whole point of anchors.py: one resolved outcome must move the number."""
+    from jevfish.anchors import Anchor, save_anchor
+
+    svc, pid = prepared
+    question = svc.frame(pid)["question"]
+
+    run, task = svc.start_run(pid, {"platform": "lite", "rounds": 1, "poll_rounds": [0]})
+    wait(task)
+    before = svc.run(pid, run["id"])["summary"]["variants"][0]["final"]
+    assert before["calibrated"] is False
+
+    save_anchor(
+        svc.store.root / "anchors.json",
+        Anchor(question, "base", predicted=before["mean_outcome"], actual=0.90,
+               n=before["n"], model_version=svc.settings.jev_model),
+    )
+
+    run2, task2 = svc.start_run(pid, {"platform": "lite", "rounds": 1, "poll_rounds": [0], "seed": 1})
+    wait(task2)
+    after = svc.run(pid, run2["id"])["summary"]["variants"][0]["final"]
+
+    assert after["calibrated"] is True
+    assert "1 resolved outcome" in after["calibration_note"]
+    assert after["mean_outcome"] > after["mean_outcome_raw"], "the fitted shift must move it up"
+    assert after["mean_outcome"] > before["mean_outcome"]
+
+
+def test_an_anchor_for_a_different_model_version_is_not_used(prepared):
+    """A calibration fitted on one model version must not silently transfer to another."""
+    from jevfish.anchors import Anchor, save_anchor
+
+    svc, pid = prepared
+    save_anchor(
+        svc.store.root / "anchors.json",
+        Anchor(svc.frame(pid)["question"], "base", predicted=0.4, actual=0.9, n=10,
+               model_version="some-other-model"),
+    )
+    run, task = svc.start_run(pid, {"platform": "lite", "rounds": 1, "poll_rounds": [0]})
+    wait(task)
+    final = svc.run(pid, run["id"])["summary"]["variants"][0]["final"]
+    assert final["calibrated"] is False
