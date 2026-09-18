@@ -37,6 +37,8 @@ Double-click **JevFish.app** in this folder. Nothing else is needed: no terminal
 - It uses the first free port from 5055 to 5064. Logs are in `~/Library/Logs/JevFish/`.
 - If something goes wrong, a dialog says what, with a button that opens the log.
 
+**Where you keep the folder matters.** macOS does not let an app read files in Desktop, Documents or Downloads, and an app can only ask for that with a paid Apple developer account. Keep the JevFish folder in your home folder, in Applications, or on another disk, and the app starts silently. From Desktop, Documents or Downloads it still works: the app hands the same start-up to Terminal, which uses the permissions you have already given it, and a Terminal window shows the progress.
+
 Then the app asks for two keys on its Setup screen:
 - **Jev** from [console.typesafe.ai](https://console.typesafe.ai). A typical run costs about US$0.04.
 - **A language model**: a free [Gemini key](https://aistudio.google.com/apikey), or any OpenAI-compatible service (address, model, key).
