@@ -7,7 +7,8 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
 
-from .config import PACKAGE_ROOT, Settings, load_settings
+from .assets import web_dist
+from .config import Settings, load_settings
 from .frame import FrameError
 from .judge import JudgeUnavailable
 from .llm import LLMError
@@ -17,7 +18,7 @@ from .setup_api import guard
 from .simulate import RunConfig, RunConfigError, planned_requests
 from .store import NotFound
 
-WEB_DIST = PACKAGE_ROOT / "web" / "dist"
+WEB_DIST = web_dist()
 TOKENS_PER_REQUEST = 1400  # measured ~1,230 on the Lazybee demo; rounded up
 PRICE_PER_M_INPUT = 0.042
 

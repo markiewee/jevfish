@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import io
 from pathlib import Path
 
 from . import interact
@@ -56,10 +57,16 @@ class Service:
     def add_file(self, pid: str, filename: str, data: bytes) -> dict:
         suffix = Path(filename).suffix.lower()
         if suffix == ".pdf":
-            import fitz
+            try:
+                from pypdf import PdfReader
+            except ModuleNotFoundError as e:
+                raise PipelineError(
+                    "reading a PDF seed needs the pdf extra: pip install 'jevfish[pdf]'. "
+                    "Or paste the text straight into the form instead of uploading a file."
+                ) from e
 
-            with fitz.open(stream=data, filetype="pdf") as doc:
-                text = "\n\n".join(page.get_text() for page in doc)
+            reader = PdfReader(io.BytesIO(data))
+            text = "\n\n".join(page.extract_text() or "" for page in reader.pages)
         elif suffix in (".txt", ".md", ".markdown", ".csv", ".json", ""):
             text = data.decode("utf-8", errors="replace")
         else:

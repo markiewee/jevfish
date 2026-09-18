@@ -64,13 +64,24 @@ class Platform(Protocol):
     async def close(self) -> None: ...
 
 
+OASIS_HINT = (
+    "the {kind} platform needs the OASIS extra, which pulls about 1 GB of machine-learning "
+    "packages that the prediction itself never uses. Install it with:\n"
+    "    uv tool install 'jevfish[oasis]'    (or: pip install 'jevfish[oasis]')\n"
+    "Or run with --platform lite, which needs nothing extra and gives the same prediction "
+    "without the simulated social feed."
+)
+
+
 def make_platform(kind: str, workdir, *, feed_size: int = 6) -> Platform:
     if kind == "lite":
         from .lite import LitePlatform
 
         return LitePlatform(feed_size=feed_size)
     if kind in ("reddit", "twitter"):
-        from .oasis_platform import OasisPlatform
-
+        try:
+            from .oasis_platform import OasisPlatform
+        except ModuleNotFoundError as e:
+            raise RuntimeError(OASIS_HINT.format(kind=kind)) from e
         return OasisPlatform(kind, workdir)
     raise ValueError(f"unknown platform '{kind}'; use reddit, twitter or lite")

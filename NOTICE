@@ -1,0 +1,19 @@
+JevFish
+Copyright (c) 2026 Mark Wee
+
+This product includes software developed as MiroFish
+(https://github.com/666ghj/MiroFish), Copyright (c) 666ghj and contributors,
+licensed under the GNU Affero General Public License version 3 or later.
+
+JevFish is a derivative work. The jevfish/ directory is new work by Mark Wee,
+first published 17 September 2026. The backend/, frontend/, locales/, scripts/
+and static/ directories are unmodified upstream code, retained for reference.
+
+This program is distributed WITHOUT ANY WARRANTY, without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+Affero General Public License for more details.
+
+"MiroFish" is used only to identify the upstream project. "Jev" and "TypeSafe"
+are used only to identify TypeSafe AI's model and API. "Gemini" identifies
+Google's model. No endorsement by any of them is claimed or implied, and none
+of their logos are used.
