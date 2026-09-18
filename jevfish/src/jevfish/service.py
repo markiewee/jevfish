@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 from . import interact
@@ -27,7 +28,18 @@ class Service:
         self.settings = settings
         self.store = store or Store(settings.data_dir)
         self._llm = llm
+        self._llm_injected = llm is not None
         self.tasks = tasks or TaskManager()
+
+    def reload(self, settings: Settings) -> None:
+        """Use new keys from now on. Tasks already running keep what they started with.
+        The data folder never changes while the server runs."""
+        self.settings = replace(settings, data_dir=self.settings.data_dir)
+        if not self._llm_injected:
+            self._llm = None
+
+    def active_tasks(self) -> int:
+        return sum(1 for t in self.tasks.list() if t.status in ("queued", "running"))
 
     @property
     def llm(self) -> LLM:

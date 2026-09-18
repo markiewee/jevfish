@@ -1,0 +1,25 @@
+name: JevFish web build is committed
+
+on:
+  pull_request:
+    paths: ["jevfish/web/**"]
+  push:
+    branches: [main]
+    paths: ["jevfish/web/**"]
+
+jobs:
+  dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: jevfish/web
+      - run: npm run build
+        working-directory: jevfish/web
+      - name: web/dist matches the source
+        run: |
+          git status --porcelain jevfish/web/dist
+          test -z "$(git status --porcelain jevfish/web/dist)"

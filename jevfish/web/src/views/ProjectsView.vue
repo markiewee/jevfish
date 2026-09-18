@@ -71,6 +71,22 @@ async function create() {
   }
 }
 
+const exampleNote = ref(false)
+
+async function loadExample() {
+  createError.value = ''
+  try {
+    const ex = await api.example()
+    name.value = ex.name
+    question.value = ex.requirement
+    seedText.value = ex.seed_text
+    showForm.value = true
+    exampleNote.value = true
+  } catch (e) {
+    createError.value = e.message
+  }
+}
+
 async function remove(p) {
   if (!window.confirm(`Delete "${p.name}" and all its runs? This cannot be undone.`)) return
   try {
@@ -98,11 +114,13 @@ onMounted(load)
       <div class="panel-head">
         <h2 id="new-head">New prediction</h2>
         <span class="spacer"></span>
+        <button class="btn small ghost" type="button" @click="loadExample">Fill in the example</button>
         <button v-if="projects.length" class="btn small ghost" type="button" :aria-expanded="showForm" @click="showForm = !showForm">
           {{ showForm ? 'Hide form' : 'Show form' }}
         </button>
       </div>
       <form v-if="showForm" class="new-form" @submit.prevent="create">
+        <p v-if="exampleNote" class="notice info">The example is a Singapore co-living brand with made-up figures.</p>
         <label class="field">
           <span class="label">Prediction question</span>
           <input v-model="question" type="text" placeholder="Would a weekly cleaning upgrade make more renters book a viewing?" required />

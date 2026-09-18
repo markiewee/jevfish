@@ -7,9 +7,8 @@ import sys
 import time
 from pathlib import Path
 
-from .config import PACKAGE_ROOT, load_settings
-
-EXAMPLE = PACKAGE_ROOT / "examples" / "lazybee-cleaning.md"
+from . import example
+from .config import load_settings
 
 
 def cmd_serve(args) -> int:
@@ -17,7 +16,10 @@ def cmd_serve(args) -> int:
 
     settings = load_settings()
     print("JevFish settings:", settings.health())
-    app = create_app(settings)
+    local = args.host in ("127.0.0.1", "localhost", "::1")
+    if not local:
+        print("Warning: listening beyond this computer. Anyone who can reach it can change the keys.")
+    app = create_app(settings, allow_remote=not local)
     print(f"Open http://{args.host}:{args.port}")
     app.run(host=args.host, port=args.port, threaded=True, debug=False)
     return 0
@@ -75,9 +77,9 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--port", type=int, default=5055)
     serve.set_defaults(func=cmd_serve)
     demo = sub.add_parser("demo", help="run graph, prepare, simulate and report on a seed document")
-    demo.add_argument("--seed", default=str(EXAMPLE))
-    demo.add_argument("--name", default="Lazybee cleaning upgrade (example)")
-    demo.add_argument("--question", default="If Lazybee adds weekly professional cleaning for S$100 more a month (example figure), will more Singapore renters book a viewing?")
+    demo.add_argument("--seed", default=str(example.PATH))
+    demo.add_argument("--name", default=example.NAME)
+    demo.add_argument("--question", default=example.QUESTION)
     demo.add_argument("--platform", default="reddit", choices=["reddit", "twitter", "lite"])
     demo.add_argument("--rounds", type=int, default=6)
     demo.add_argument("--public", type=int, default=40)

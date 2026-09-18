@@ -30,18 +30,38 @@ Each simulated turn is a single Jev request containing seven typed questions:
 
 ## Run it
 
+Double-click **JevFish.app** in this folder. Nothing else is needed: no terminal, no Homebrew, no Node.
+
+- The first start installs uv and the Python packages (about 1 GB) with no admin password, then opens JevFish in your browser. It took 30 seconds on a fast connection and can take a few minutes on a slow one.
+- Later starts take a few seconds, and reuse a JevFish that is already running.
+- It uses the first free port from 5055 to 5064. Logs are in `~/Library/Logs/JevFish/`.
+- If something goes wrong, a dialog says what, with a button that opens the log.
+
+**Where you keep the folder matters.** macOS does not let an app read files in Desktop, Documents or Downloads, and an app can only ask for that with a paid Apple developer account. Keep the JevFish folder in your home folder, in Applications, or on another disk, and the app starts silently. From Desktop, Documents or Downloads it still works: the app hands the same start-up to Terminal, which uses the permissions you have already given it, and a Terminal window shows the progress.
+
+Then the app asks for two keys on its Setup screen:
+- **Jev** from [console.typesafe.ai](https://console.typesafe.ai). A typical run costs about US$0.04.
+- **A language model**: a free [Gemini key](https://aistudio.google.com/apikey), or any OpenAI-compatible service (address, model, key).
+
+"Save and check" stores them in `jevfish/.env` (readable only by you) and checks both with calls that cost nothing. There is also a **test mode** that runs every screen on deterministic fakes, so you can look around without keys. Every number it shows is made up.
+
+**If macOS blocks the app**, it came from a downloaded ZIP, which macOS quarantines. Open System Settings, Privacy & Security, scroll to the JevFish message and click Open Anyway. A `git clone` has no such block.
+
+### From the terminal
+
 ```sh
 cd jevfish
 uv sync
-cd web && npm install && npm run build && cd ..
+cd web && npm install && npm run build && cd ..   # only if you change the web app; the built one is committed
 
-export TYPESAFE_API_KEY=...          # console.typesafe.ai
+export TYPESAFE_API_KEY=...          # or set the keys in the app
 export GEMINI_API_KEY=...            # or LLM_API_KEY + LLM_BASE_URL + LLM_MODEL for any OpenAI-compatible model
 uv run jevfish serve                 # http://127.0.0.1:5055
 ```
 
 - **Whole pipeline from the terminal:** `uv run jevfish demo` runs it on `examples/lazybee-cleaning.md`. That file uses example figures, not real Lazybee data.
-- **No keys:** `JEVFISH_FAKE_JUDGE=1 JEVFISH_FAKE_LLM=1 uv run jevfish serve` runs everything on deterministic fakes, useful for trying the UI.
+- **No keys:** `JEVFISH_FAKE_JUDGE=1 JEVFISH_FAKE_LLM=1 uv run jevfish serve` runs everything on deterministic fakes, the same as test mode.
+- The API answers only requests addressed to this computer, and refuses changing requests sent from another website. `serve --host 0.0.0.0` turns that off and warns, which also exposes the key screen to your network.
 
 Settings:
 - `JEVFISH_DATA_DIR` sets where data is stored (default `jevfish/data`).

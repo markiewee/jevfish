@@ -168,7 +168,7 @@ legend { padding: 0; margin-bottom: 8px; }
 label.field { display: block; }
 .field > .label { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
 .field > .hint { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; }
-input[type='text'], input[type='number'], input[type='search'], select, textarea {
+input[type='text'], input[type='number'], input[type='search'], input[type='password'], input[type='url'], select, textarea {
   font: inherit;
   font-size: 14px;
   color: var(--ink);
@@ -189,6 +189,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); width
 /* Buttons */
 .btn {
   font: inherit;
+  text-decoration: none;
   font-size: 14px;
   font-weight: 600;
   display: inline-flex;
