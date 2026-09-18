@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .frame_audit import audit_variants, neutralise
 from .graph import digest
 from .llm import LLM
 
@@ -31,8 +32,9 @@ Reply with JSON only:
 Rules:
 - 12 to 30 talking points, balanced between pro and con, grounded in the documents.
 - 1 to 3 opening posts written by actors that appear in the graph.
-- variants only when the question compares options; otherwise an empty list. The first variant is the status quo.
-- Every variant, including the status quo, sets the same changing subject keys to its own values (for example price and cleaning), so each option is fully described. Keep facts shared by all options in subject.
+- variants only when the question compares options; otherwise an empty list.
+- Every variant sets the same changing subject keys to its own values (for example price and cleaning), so each option is fully described. Keep facts shared by all options in subject.
+- NEVER position one option against another or against a norm. Do not write "the current rate", "a third above", "cheaper", "the baseline", "premium", "discounted", "what we charge today", or any word saying which option is better, higher, lower or usual. Each option states only its own facts. A reader must not be able to tell from an option's own text which one is the incumbent. Labels are the bare value, for example "MYR 300", never "MYR 300 (current)".
 - The outcome question and every stance level must read correctly for every variant: describe the person's reaction to `subject` in general terms and never mention one option's details (no "this price increase").
 - subject holds facts about the offer only, not opinions of groups of people.
 - In instructions, refer to the inputs only as `agent`, `subject` and `feed`, with backticks.
@@ -84,6 +86,17 @@ def normalize_frame(data: dict[str, Any], requirement: str = "") -> dict:
         vids.add(vid)
         overrides = v.get("subject") if isinstance(v.get("subject"), dict) else {}
         variants.append({"id": vid, "label": str(v.get("label") or vid), "subject": overrides})
+    problems = audit_variants(variants)
+    if problems:
+        detail = "; ".join(
+            f"variant {p['variant']} key '{p['key']}' says {', '.join(p['terms'])}"
+            for p in problems
+        )
+        raise FrameError(
+            "variant wording positions the options against each other, which dictates the "
+            "result instead of measuring it. On the Pureloft ladder this alone moved fitted "
+            f"elasticity from -0.090 to -1.432 and reversed the recommendation. Found: {detail}"
+        )
     if not variants:
         variants = [{"id": "base", "label": "As described", "subject": {}}]
     openings = []
@@ -115,11 +128,59 @@ def variant_subject(frame: dict, variant_id: str) -> dict:
 
 
 def build_frame(llm: LLM, requirement: str, graph: dict) -> dict:
-    data = llm.json(
-        "frame",
-        [
-            {"role": "system", "content": FRAME_SYSTEM},
-            {"role": "user", "content": f"Prediction question: {requirement}\n\nKnowledge graph:\n{digest(graph)}"},
-        ],
-    )
-    return normalize_frame(data, requirement)
+    """Ask the LLM for a frame, and do not accept one that dictates its own answer.
+
+    `normalize_frame` refuses comparative per-option wording outright, which is correct for
+    a frame a person hands us deliberately. Here the frame comes from a sampling model, so
+    a hard failure would randomly break a run. Instead: ask again with the violation quoted
+    back, and if that still fails, strip the offending keys and record a warning on the
+    frame so the report can say what happened.
+
+    Measured 18 Sep 2026: the tightened prompt produced a clean frame on 3 of 3 real
+    attempts, so this path should be rare. It exists so that "rare" is not "broken".
+    """
+    user = f"Prediction question: {requirement}\n\nKnowledge graph:\n{digest(graph)}"
+    messages = [
+        {"role": "system", "content": FRAME_SYSTEM},
+        {"role": "user", "content": user},
+    ]
+    data = llm.json("frame", messages)
+    try:
+        return normalize_frame(data, requirement)
+    except FrameError as first:
+        if "positions the options against each other" not in str(first):
+            raise
+        retry = messages + [
+            {"role": "assistant", "content": "(previous attempt)"},
+            {
+                "role": "user",
+                "content": (
+                    f"That frame was rejected: {first}\n\nWrite it again. Every variant must "
+                    "state only its own facts, as concrete values. No option may be described "
+                    "in terms of another option or of what is usual. Give each option the same "
+                    "subject keys with its own value for each."
+                ),
+            },
+        ]
+        data = llm.json("frame", retry)
+        try:
+            return normalize_frame(data, requirement)
+        except FrameError as second:
+            frame = normalize_frame(neutralise(_as_frame(data, requirement)), requirement)
+            frame["warnings"] = [
+                "The frame generator twice wrote per-option wording that states the answer "
+                f"instead of measuring it ({second}). Those keys were removed automatically, "
+                "so the options now differ only in their own stated values. Check the options "
+                "below before trusting any comparison."
+            ]
+            return frame
+
+
+def _as_frame(data: dict[str, Any], requirement: str) -> dict:
+    """The variants-only shape `neutralise` needs, without running the strict checks."""
+    variants = []
+    for v in data.get("variants") or []:
+        vid = re.sub(r"[^A-Za-z0-9_-]", "", str(v.get("id", "")))[:12] or f"V{len(variants) + 1}"
+        overrides = v.get("subject") if isinstance(v.get("subject"), dict) else {}
+        variants.append({"id": vid, "label": str(v.get("label") or vid), "subject": overrides})
+    return {**data, "variants": variants}

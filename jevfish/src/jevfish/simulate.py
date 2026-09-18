@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any
 
 from . import metrics
+from .anchors import load_anchors
+from .calibrate import conformal_half_width, fit_map
 from .frame import variant_subject
 from .judge import BudgetExceeded, answer_to_json, build_judge, question_to_json
 from .llm import LLM
@@ -27,6 +29,10 @@ from .store import Store, now
 from .writer import write
 
 PLATFORMS = {"reddit", "twitter", "lite"}
+
+# The poll asks a NoulQ, so each person is judged independently rather than allocated
+# across an option set. This is the estimand anchors must match to be usable here.
+ESTIMAND = "acceptance_rate_independent"
 
 
 class RunConfigError(ValueError):
@@ -120,6 +126,23 @@ class RunContext:
         self.levels = self.frame["stance"]["levels"]
         self.points = {p["id"]: p["text"] for p in self.frame["talking_points"]}
         self.cache_path = project_dir / "verdicts.sqlite"
+        # Calibration and honest intervals come from resolved outcomes on disk. With none
+        # recorded the map is the identity and the interval stays the sampling-noise one,
+        # which summarize_poll then labels as such rather than dressing it up.
+        self.anchors_path = store.root / "anchors.json"
+        self.anchors = load_anchors(
+            self.anchors_path,
+            question=self.frame["question"],
+            estimand=ESTIMAND,
+            model_version=settings.jev_model,
+        )
+        self.calibration = fit_map(self.anchors)
+        try:
+            self.honest_half_width = conformal_half_width(
+                [a.residual for a in self.anchors], alpha=0.10
+            )
+        except ValueError:
+            self.honest_half_width = None
         self.judge = None
         self.meter = None
         self.writer_gate = asyncio.Semaphore(max(1, settings.llm_workers))
@@ -238,7 +261,12 @@ class VariantRun:
         self.poll_records[round_no] = records
         for r in records:
             self.ctx.log("polls.jsonl", r)
-        s = metrics.summarize_poll(records, len(self.ctx.levels))
+        s = metrics.summarize_poll(
+            records, len(self.ctx.levels),
+            calibration=self.ctx.calibration,
+            honest_half_width=self.ctx.honest_half_width,
+            estimand=ESTIMAND,
+        )
         self.ctx.tick(f"{self.vid}: poll after round {round_no}: {s['expected_yes']:.1f} of {s['n']} expected yes")
 
     async def apply(self, round_no: int, acts: list[Act], extras: list[dict]) -> None:
@@ -277,7 +305,10 @@ class VariantRun:
         mind = self.minds[agent_id]
         feed = await self.platform.feed(agent_id)
         actions = allowed_actions(self.platform.actions, feed, mind, agent_id, {self.news_id})
-        questions = build_questions(self.ctx.frame, feed, actions, self.labels, mind, agent_id, {self.news_id})
+        questions = build_questions(
+            self.ctx.frame, feed, actions, self.labels, mind, agent_id, {self.news_id},
+            seed=self.cfg.seed,
+        )
         verdict = await self.ask(self.state(mind, feed), questions, "turn", round_no, agent_id)
         rng = random.Random(f"{self.cfg.seed}:{self.vid}:{round_no}:{agent_id}")
         d = decide(verdict, rng, agent_id, mind.exclusions())
@@ -369,7 +400,15 @@ class VariantRun:
 
     def summarize(self, posts: list[dict], partial: bool = False) -> dict:
         n_levels = len(self.ctx.levels)
-        polls = [{"round": r, **metrics.summarize_poll(recs, n_levels)} for r, recs in sorted(self.poll_records.items())]
+        polls = [
+            {"round": r, **metrics.summarize_poll(
+                recs, n_levels,
+                calibration=self.ctx.calibration,
+                honest_half_width=self.ctx.honest_half_width,
+                estimand=ESTIMAND,
+            )}
+            for r, recs in sorted(self.poll_records.items())
+        ]
         final_round = max(self.poll_records) if self.poll_records else None
         final_records = self.poll_records.get(final_round, []) if final_round is not None else []
         counts = {}

@@ -130,28 +130,49 @@ def allowed_actions(platform_actions: list[str], feed: list[FeedPost], mind: Min
     return out or ["do_nothing"]
 
 
-def build_questions(frame: dict, feed: list[FeedPost], actions: list[str], labels: dict[int, str], mind: Mind, self_id: int, blocked: set[int]) -> dict[str, Question]:
+def build_questions(frame: dict, feed: list[FeedPost], actions: list[str], labels: dict[int, str], mind: Mind, self_id: int, blocked: set[int], *, seed: int = 0) -> dict[str, Question]:
+    """The questions one person answers this turn.
+
+    Every ChoiceQ gets its options in a per-person order, so the judge's position bias
+    becomes noise across the crowd instead of a systematic shift. See `shuffled_criteria`.
+    """
     qs: dict[str, Question] = {
         "stance": ScoreQ(frame["stance"]["instructions"], list(frame["stance"]["levels"])),
         "outcome": NoulQ(frame["outcome"]["instructions"], frame["outcome"].get("criteria")),
     }
     if actions == ["do_nothing"]:
         return qs
-    qs["action"] = ChoiceQ(ACTION_INSTRUCTIONS, {a: ACTION_TEXT[a] for a in actions})
+    order = {"seed": seed, "agent_id": self_id}
+    qs["action"] = ChoiceQ(
+        ACTION_INSTRUCTIONS,
+        shuffled_criteria({a: ACTION_TEXT[a] for a in actions}, **order),
+    )
     if TEXT_ACTIONS & set(actions):
         points = {p["id"]: p["text"] for p in frame["talking_points"]}
         points[NO_POINT] = POINT_NONE
-        qs["point"] = ChoiceQ(POINT_INSTRUCTIONS, points)
+        qs["point"] = ChoiceQ(
+            POINT_INSTRUCTIONS,
+            shuffled_criteria(points, **order, pin_last=frozenset({NO_POINT})),
+        )
     if POST_TARGET_ACTIONS & set(actions):
-        qs["target_post"] = ChoiceQ(TARGET_POST_INSTRUCTIONS, {f"p{p.post_id}": p.content[:300] or "(empty)" for p in feed})
+        qs["target_post"] = ChoiceQ(
+            TARGET_POST_INSTRUCTIONS,
+            shuffled_criteria({f"p{p.post_id}": p.content[:300] or "(empty)" for p in feed}, **order),
+        )
     if "like_comment" in actions:
         qs["target_comment"] = ChoiceQ(
             TARGET_COMMENT_INSTRUCTIONS,
-            {f"c{c.comment_id}": c.content[:300] or "(empty)" for p in feed for c in p.comments[-3:]},
+            shuffled_criteria(
+                {f"c{c.comment_id}": c.content[:300] or "(empty)" for p in feed for c in p.comments[-3:]},
+                **order,
+            ),
         )
     if "follow" in actions:
         authors = {p.author_id for p in feed} - mind.following - {self_id} - blocked
-        qs["followee"] = ChoiceQ(FOLLOW_INSTRUCTIONS, {f"u{a}": labels.get(a, f"user {a}") for a in sorted(authors)})
+        qs["followee"] = ChoiceQ(
+            FOLLOW_INSTRUCTIONS,
+            shuffled_criteria({f"u{a}": labels.get(a, f"user {a}") for a in sorted(authors)}, **order),
+        )
     return qs
 
 
@@ -212,3 +233,26 @@ def decide(verdict: Verdict, rng: random.Random, agent_id: int, exclusions: dict
         pick = sample(rng, a["followee"])
         d.followee = int(pick[1:]) if pick else None
     return d
+
+
+def shuffled_criteria(
+    criteria: dict, *, seed: int, agent_id: int, pin_last: frozenset = frozenset()
+) -> dict:
+    """The same options in a per-person order, so position bias averages out.
+
+    Option order is a real effect, not noise. With a fixed order every person sees the
+    same positions, so any primacy or recency bias in the judge lands on all N people
+    identically and becomes a systematic shift in the crowd's answer rather than something
+    that cancels. Randomising per person converts it back into noise.
+
+    Deterministic in (seed, agent_id) so reruns are reproducible and the request cache
+    still hits. `pin_last` keeps a reserved option such as "none of these" at the end,
+    where it reads as an escape hatch rather than a candidate.
+
+    The outcome question is a NoulQ with no option list, so it is not affected. This
+    applies to the action, talking-point and target choices.
+    """
+    keys = [k for k in criteria if k not in pin_last]
+    tail = [k for k in criteria if k in pin_last]
+    random.Random(f"order:{seed}:{agent_id}").shuffle(keys)
+    return {k: criteria[k] for k in keys + tail}
