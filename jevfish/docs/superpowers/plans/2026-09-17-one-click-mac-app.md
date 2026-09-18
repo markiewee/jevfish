@@ -27,6 +27,7 @@ Mark, Kavi, Trisha, and anyone else on a Mac who gets the repo, either as a git 
    - Picks the first free port from 5055 to 5064.
    - Failures show a macOS alert in plain words with a "Show log" button. Logs go to `~/Library/Logs/JevFish/`.
    - Still works when the app was moved out of the folder (it remembers the repo path) and when macOS runs a downloaded copy from a temporary path (it finds the folder with Spotlight).
+   - **Folders macOS protects.** An app may not read Desktop, Documents or Downloads, and without a paid Apple developer account it cannot even ask (tested on macOS 26.3.2: silently denied, with an ad-hoc signature and usage strings both present). From those folders the app hands the same script to Terminal, which uses the permissions the user already granted, and the window explains why it is there. Anywhere else it starts silently.
 2. **Setup in the app.** Opening the app with keys missing lands on a Setup screen.
    - Jev: the TypeSafe API key.
    - Language model: Gemini (key only) or any other OpenAI-compatible model (address, model name, key).
@@ -46,8 +47,9 @@ Mark, Kavi, Trisha, and anyone else on a Mac who gets the repo, either as a git 
 - A native window. It opens in the browser.
 - Moving existing project data.
 
-### Known limit
-A copy downloaded as a ZIP is quarantined by macOS. The first open is blocked with "Apple could not verify". The user goes once to System Settings, Privacy & Security, Open Anyway. The README says so. Git clones are not affected.
+### Known limits
+- A copy downloaded as a ZIP is quarantined by macOS. The first open is blocked with "Apple could not verify". The user goes once to System Settings, Privacy & Security, Open Anyway. The README says so. Git clones are not affected.
+- From Desktop, Documents or Downloads the start happens in a Terminal window, as above. Both are the same cause: no paid Apple developer account, and signing is out of scope.
 
 ### Success check
 - On this Mac, from a fresh local clone with an empty state folder and uv hidden from PATH, a double-click (`open JevFish.app`) installs uv and the packages, opens the Setup screen, saves real keys, both checks pass, and a test-mode project runs end to end.
@@ -1603,17 +1605,19 @@ Run: `uv run pytest tests/test_launcher.py -q`. Expected: 5 passed.
 **Title:** JevFish: double-click Mac app and in-app setup
 
 **Summary**
-- `JevFish.app` at the repo root. Double-click it and it installs uv and the Python packages on first start (no admin password, no Xcode, no Node), starts JevFish on a free port or reuses a running one, and opens the browser. Errors come up as a macOS alert with a "Show log" button.
+- `JevFish.app` at the repo root. Double-click it and it installs uv and the Python packages on first start (no admin password, no Xcode, no Node), starts JevFish on a free port or reuses a running one, and opens the browser. Errors come up as a macOS alert with a "Show log" button. The package install is retried three times, because one PyPI timeout should not end setup.
+- macOS does not let an app read Desktop, Documents or Downloads. From there the app hands the same script to Terminal, which explains itself in the window. Everywhere else it starts with no window at all.
 - Setup screen in the app. It takes the Jev key and a Gemini or any OpenAI-compatible model, then "Save and check" writes `jevfish/.env` (mode 600) and applies it without a restart. It checks both keys with free calls. The screen also has test mode and a Stop button. First load without keys lands there.
 - "Fill in the example" on the new-prediction form.
 - The API now only answers requests addressed to this computer, and refuses changing requests from other websites. `serve --host` beyond loopback turns this off and warns.
 - The built web app is committed, and a workflow fails if it goes stale.
 
 **Tests**
-- `uv run pytest -q`: new env-file, key-check, setup API, guard, launcher (fake uv and a fake server) and bundle tests.
-- A fresh-install run on this Mac with uv hidden.
-- A real double-click.
-- Real key checks.
-- Browser QA at three widths in both themes.
+- `uv run pytest -q`: 84 tests, including new env-file, key-check, setup API, guard, launcher (fake uv, a fake server, a failing first install) and bundle tests.
+- Fresh install on this Mac from a blank home folder with uv hidden: uv, Python 3.12 and 1 GB of packages installed and the server was up in 30 seconds.
+- Real double-click both ways: silent from an unprotected folder, Terminal handover from the Desktop copy.
+- Real keys saved and checked through the new API, wrong keys rejected, `.env` written mode 600.
+- A real prediction on the fresh install: 108 Jev requests, US$0.0052, about two minutes on OASIS Reddit.
+- Browser QA at 375, 768 and 1280 in light and dark: 19 checks, no console errors, no sideways scroll.
 
 **Known limit:** ZIP downloads are quarantined by macOS, so the first open needs Privacy & Security, Open Anyway. Signing would need a paid Apple account.
