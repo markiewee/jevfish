@@ -277,7 +277,10 @@ class VariantRun:
         mind = self.minds[agent_id]
         feed = await self.platform.feed(agent_id)
         actions = allowed_actions(self.platform.actions, feed, mind, agent_id, {self.news_id})
-        questions = build_questions(self.ctx.frame, feed, actions, self.labels, mind, agent_id, {self.news_id})
+        questions = build_questions(
+            self.ctx.frame, feed, actions, self.labels, mind, agent_id, {self.news_id},
+            seed=self.cfg.seed,
+        )
         verdict = await self.ask(self.state(mind, feed), questions, "turn", round_no, agent_id)
         rng = random.Random(f"{self.cfg.seed}:{self.vid}:{round_no}:{agent_id}")
         d = decide(verdict, rng, agent_id, mind.exclusions())
