@@ -45,10 +45,18 @@ def prepared(tmp_path, monkeypatch):
 
 
 def two_variant_frame(svc, pid):
+    """Two options that differ only in a stated quantity.
+
+    The old fixture here was {"A": "Now", subject {}} against {"B": "Cheaper",
+    subject {"price": "lower"}}, which is the exact defect frame_audit now refuses:
+    option A carried no price at all and option B was described relative to it. On the
+    Pureloft ladder that kind of wording moved fitted elasticity from -0.090 to -1.432
+    and reversed the recommendation. Each option now states its own number.
+    """
     frame = svc.frame(pid)
     frame["variants"] = [
-        {"id": "A", "label": "Now", "subject": {}},
-        {"id": "B", "label": "Cheaper", "subject": {"price": "lower"}},
+        {"id": "A", "label": "S$100 a month", "subject": {"price_sgd_per_month": 100}},
+        {"id": "B", "label": "S$80 a month", "subject": {"price_sgd_per_month": 80}},
     ]
     svc.update_frame(pid, frame)
 

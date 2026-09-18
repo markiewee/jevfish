@@ -112,3 +112,114 @@ def test_attribute_shapes_are_tolerated():
     assert _attributes([{"name": "budget", "values": [{"value": "low", "weight": 2}, {"value": "high", "weight": 1}]}]) == {
         "budget": {"low": 2.0, "high": 1.0}}
     assert _attributes({"x": {"a": 0}, "y": None}) == {}
+
+
+# --- the frame must not dictate the answer (Finding 7) ----------------------
+
+_GOOD_BASE = {
+    "question": "would they book?",
+    "outcome": {"instructions": "would `agent` book `subject`?"},
+    "stance": {"levels": ["rules it out", "unsure", "books it"]},
+    "talking_points": [{"id": "p", "text": "a point", "side": "pro"}],
+}
+
+
+def test_normalize_frame_rejects_comparative_variant_wording():
+    from jevfish.frame import FrameError, normalize_frame
+
+    data = {
+        **_GOOD_BASE,
+        "variants": [
+            {"id": "a", "label": "MYR 300", "subject": {"rate": 300, "note": "the current rate"}},
+            {"id": "b", "label": "MYR 500", "subject": {"rate": 500, "note": "well above market"}},
+        ],
+    }
+    with pytest.raises(FrameError) as e:
+        normalize_frame(data, "q")
+    msg = str(e.value)
+    assert "note" in msg
+    assert "current" in msg
+    assert "-1.432" in msg          # the message must carry the evidence
+
+
+def test_normalize_frame_accepts_options_differing_only_in_the_quantity():
+    from jevfish.frame import normalize_frame
+
+    data = {
+        **_GOOD_BASE,
+        "variants": [
+            {"id": "a", "label": "MYR 300", "subject": {"rate": 300}},
+            {"id": "b", "label": "MYR 500", "subject": {"rate": 500}},
+        ],
+    }
+    frame = normalize_frame(data, "q")
+    assert [v["subject"] for v in frame["variants"]] == [{"rate": 300}, {"rate": 500}]
+
+
+def test_normalize_frame_still_accepts_a_frame_with_no_variants():
+    from jevfish.frame import normalize_frame
+
+    frame = normalize_frame({**_GOOD_BASE, "variants": []}, "q")
+    assert frame["variants"] == [{"id": "base", "label": "As described", "subject": {}}]
+
+
+def test_build_frame_retries_then_self_heals_rather_than_breaking_a_run():
+    """A sampling model must not randomly break prepare. Retry, then strip and warn."""
+    from jevfish.frame import build_frame
+
+    bad = {
+        **_GOOD_BASE,
+        "opening_posts": [],
+        "variants": [
+            {"id": "A", "label": "Now", "subject": {"rate": 300, "note": "the current rate"}},
+            {"id": "B", "label": "Up", "subject": {"rate": 500, "note": "well above market"}},
+        ],
+    }
+
+    class AlwaysBad:
+        def __init__(self):
+            self.calls = 0
+
+        def json(self, task, messages, **kw):
+            self.calls += 1
+            return bad
+
+        def chat(self, task, messages, **kw):
+            return ""
+
+    llm = AlwaysBad()
+    graph = {"ontology": {"entity_types": []}, "nodes": [], "edges": []}
+    frame = build_frame(llm, "q", graph)
+    assert llm.calls == 2, "must retry exactly once before self-healing"
+    assert [v["subject"] for v in frame["variants"]] == [{"rate": 300}, {"rate": 500}]
+    assert frame["warnings"]
+    assert "removed automatically" in frame["warnings"][0]
+
+
+def test_build_frame_accepts_a_clean_frame_without_retrying():
+    from jevfish.frame import build_frame
+
+    good = {
+        **_GOOD_BASE,
+        "opening_posts": [],
+        "variants": [
+            {"id": "A", "label": "MYR 300", "subject": {"rate": 300}},
+            {"id": "B", "label": "MYR 500", "subject": {"rate": 500}},
+        ],
+    }
+
+    class Good:
+        def __init__(self):
+            self.calls = 0
+
+        def json(self, task, messages, **kw):
+            self.calls += 1
+            return good
+
+        def chat(self, task, messages, **kw):
+            return ""
+
+    llm = Good()
+    frame = build_frame(llm, "q", {"ontology": {"entity_types": []}, "nodes": [], "edges": []})
+    assert llm.calls == 1
+    assert "warnings" not in frame
