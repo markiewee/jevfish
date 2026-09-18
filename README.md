@@ -1,207 +1,144 @@
-> **This fork adds JevFish.** [`jevfish/`](jevfish/) is our own rebuild of MiroFish's five-stage pipeline. TypeSafe's Jev decides every simulated person's turn; an LLM only writes the text. The graph is local, so no Zep account is needed, and the prediction is calibrated. See [jevfish/README.md](jevfish/README.md). The original MiroFish code below is kept unchanged as reference.
->
-> **To run it on a Mac, double-click `JevFish.app` in this folder.** The first start installs everything it needs and opens JevFish in your browser; the app then asks for your Jev and language-model keys on screen. No terminal, no Homebrew, no Node. If macOS blocks the app because you downloaded the ZIP, open System Settings, Privacy & Security, and click Open Anyway. Keep the folder in your home folder rather than Desktop, Documents or Downloads, or JevFish starts in a Terminal window instead. Full instructions: [jevfish/README.md](jevfish/README.md).
+# JevFish
 
-<div align="center">
+**Ask how a population will react. JevFish builds a synthetic crowd, polls every single person, and tells you when the answer came from your prompt instead of from the world.**
 
-<img src="./static/image/MiroFish_logo_compressed.jpeg" alt="MiroFish Logo" width="75%"/>
+[![Licence: AGPL v3](https://img.shields.io/badge/licence-AGPL--3.0--or--later-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
+[![Install size 27 MB](https://img.shields.io/badge/install-27%20MB-brightgreen.svg)](#install)
 
-<a href="https://trendshift.io/repositories/16144" target="_blank"><img src="https://trendshift.io/api/badge/repositories/16144" alt="666ghj%2FMiroFish | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-
-简洁通用的群体智能引擎，预测万物
-</br>
-<em>A Simple and Universal Swarm Intelligence Engine, Predicting Anything</em>
-
-<a href="https://www.shanda.com/" target="_blank"><img src="./static/image/shanda_logo.png" alt="666ghj%2FMiroFish | Shanda" height="40"/></a>
-
-[![GitHub Stars](https://img.shields.io/github/stars/666ghj/MiroFish?style=flat-square&color=DAA520)](https://github.com/666ghj/MiroFish/stargazers)
-[![GitHub Watchers](https://img.shields.io/github/watchers/666ghj/MiroFish?style=flat-square)](https://github.com/666ghj/MiroFish/watchers)
-[![GitHub Forks](https://img.shields.io/github/forks/666ghj/MiroFish?style=flat-square)](https://github.com/666ghj/MiroFish/network)
-[![Docker](https://img.shields.io/badge/Docker-Build-2496ED?style=flat-square&logo=docker&logoColor=white)](https://hub.docker.com/)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/666ghj/MiroFish)
-
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white)](http://discord.gg/ePf5aPaHnA)
-[![X](https://img.shields.io/badge/X-Follow-000000?style=flat-square&logo=x&logoColor=white)](https://x.com/mirofish_ai)
-[![Instagram](https://img.shields.io/badge/Instagram-Follow-E4405F?style=flat-square&logo=instagram&logoColor=white)](https://www.instagram.com/mirofish_ai/)
-
-[English](./README.md) | [中文文档](./README-ZH.md)
-
-</div>
-
-## ⚡ Overview
-
-**MiroFish** is a next-generation AI prediction engine powered by multi-agent technology. By extracting seed information from the real world (such as breaking news, policy drafts, or financial signals), it automatically constructs a high-fidelity parallel digital world. Within this space, thousands of intelligent agents with independent personalities, long-term memory, and behavioral logic freely interact and undergo social evolution. You can inject variables dynamically from a "God's-eye view" to precisely deduce future trajectories — **rehearse the future in a digital sandbox, and win decisions after countless simulations**.
-
-> You only need to: Upload seed materials (data analysis reports or interesting novel stories) and describe your prediction requirements in natural language</br>
-> MiroFish will return: A detailed prediction report and a deeply interactive high-fidelity digital world
-
-### Our Vision
-
-MiroFish is dedicated to creating a swarm intelligence mirror that maps reality. By capturing the collective emergence triggered by individual interactions, we break through the limitations of traditional prediction:
-
-- **At the Macro Level**: We are a rehearsal laboratory for decision-makers, allowing policies and public relations to be tested at zero risk
-- **At the Micro Level**: We are a creative sandbox for individual users — whether deducing novel endings or exploring imaginative scenarios, everything can be fun, playful, and accessible
-
-From serious predictions to playful simulations, we let every "what if" see its outcome, making it possible to predict anything.
-
-## 🌐 Live Demo
-
-Welcome to visit our online demo environment and experience a prediction simulation on trending public opinion events we've prepared for you: [mirofish-live-demo](https://666ghj.github.io/mirofish-demo/)
-
-## 📸 Screenshots
-
-<div align="center">
-<table>
-<tr>
-<td><img src="./static/image/Screenshot/运行截图1.png" alt="Screenshot 1" width="100%"/></td>
-<td><img src="./static/image/Screenshot/运行截图2.png" alt="Screenshot 2" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/image/Screenshot/运行截图3.png" alt="Screenshot 3" width="100%"/></td>
-<td><img src="./static/image/Screenshot/运行截图4.png" alt="Screenshot 4" width="100%"/></td>
-</tr>
-<tr>
-<td><img src="./static/image/Screenshot/运行截图5.png" alt="Screenshot 5" width="100%"/></td>
-<td><img src="./static/image/Screenshot/运行截图6.png" alt="Screenshot 6" width="100%"/></td>
-</tr>
-</table>
-</div>
-
-## 🎬 Demo Videos
-
-### 1. Wuhan University Public Opinion Simulation + MiroFish Project Introduction
-
-<div align="center">
-<a href="https://www.bilibili.com/video/BV1VYBsBHEMY/" target="_blank"><img src="./static/image/武大模拟演示封面.png" alt="MiroFish Demo Video" width="75%"/></a>
-
-Click the image to watch the complete demo video for prediction using BettaFish-generated "Wuhan University Public Opinion Report"
-</div>
-
-### 2. Dream of the Red Chamber Lost Ending Simulation
-
-<div align="center">
-<a href="https://www.bilibili.com/video/BV1cPk3BBExq" target="_blank"><img src="./static/image/红楼梦模拟推演封面.jpg" alt="MiroFish Demo Video" width="75%"/></a>
-
-Click the image to watch MiroFish's deep prediction of the lost ending based on hundreds of thousands of words from the first 80 chapters of "Dream of the Red Chamber"
-</div>
-
-> **Financial Prediction**, **Political News Prediction** and more examples coming soon...
-
-## 🔄 Workflow
-
-1. **Graph Building**: Seed extraction & Individual/collective memory injection & GraphRAG construction
-2. **Environment Setup**: Entity relationship extraction & Persona generation & Agent configuration injection
-3. **Simulation**: Dual-platform parallel simulation & Auto-parse prediction requirements & Dynamic temporal memory updates
-4. **Report Generation**: ReportAgent with rich toolset for deep interaction with post-simulation environment
-5. **Deep Interaction**: Chat with any agent in the simulated world & Interact with ReportAgent
-
-## 🚀 Quick Start
-
-### Option 1: Source Code Deployment (Recommended)
-
-#### Prerequisites
-
-| Tool | Version | Description | Check Installation |
-|------|---------|-------------|-------------------|
-| **Node.js** | 18+ | Frontend runtime, includes npm | `node -v` |
-| **Python** | ≥3.11, ≤3.12 | Backend runtime | `python --version` |
-| **uv** | Latest | Python package manager | `uv --version` |
-
-#### 1. Configure Environment Variables
+## See it work before you sign up for anything
 
 ```bash
-# Copy the example configuration file
-cp .env.example .env
-
-# Edit the .env file and fill in the required API keys
+JEVFISH_FAKE_JUDGE=1 JEVFISH_FAKE_LLM=1 uvx jevfish demo --platform lite
 ```
 
-**Required Environment Variables:**
-
-```env
-# LLM API Configuration (supports any LLM API with OpenAI SDK format)
-# Recommended: Alibaba Qwen-plus model via Bailian Platform: https://bailian.console.aliyun.com/
-# High consumption, try simulations with fewer than 40 rounds first
-LLM_API_KEY=your_api_key
-LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
-LLM_MODEL_NAME=qwen-plus
-
-# Zep Cloud Configuration
-# Free monthly quota is sufficient for simple usage: https://app.getzep.com/
-ZEP_API_KEY=your_zep_api_key
-```
-
-#### 2. Install Dependencies
+About ten seconds, no API keys, no account. It runs all five stages on deterministic
+stand-in answers and prints a real report. Then, with keys:
 
 ```bash
-# One-click installation of all dependencies (root + frontend + backend)
-npm run setup:all
+uvx jevfish serve
 ```
 
-Or install step by step:
+That is the whole install. It opens in your browser and asks for two keys on screen. No
+clone, no Node, no Homebrew.
+
+## What it does
+
+Give it a yes-or-no question and the documents behind it.
+
+1. **Graph** reads the documents and pulls out the people, places and facts.
+2. **Crowd** writes a segmented synthetic public plus the real named stakeholders.
+3. **Simulate** lets them argue on a social feed, then polls every one of them.
+4. **Report** gives you the number, the segments behind it, and what moved.
+5. **Ask** lets you interview any single simulated person afterwards.
+
+Every person's judgment comes from a typed decision model rather than free text, so polling
+a thousand people costs cents instead of dollars.
+
+## What it will not do
+
+This section is above the screenshots on purpose.
+
+- **The number is not a real-world rate.** It is an acceptance rate within the crowd you
+  described, or a share of the option set you described. A listing with a 22 percent choice
+  share can sit in a flat running at 89 percent occupancy, because occupancy is arrival
+  volume over supply. JevFish names which quantity it is reporting, every time.
+- **With no resolved outcomes on file it reports no interval worth trusting, and says so.**
+  On our own backtest the naive interval was 11.5 times too narrow, and it got *narrower*
+  as we added people, because sampling noise shrinks while model bias does not move. Record
+  one real outcome with `jevfish anchor add` and it fits a calibration map. Nine outcomes
+  buys a distribution-free 90 percent interval. Below four it prints the raw errors instead
+  of inventing a range.
+- **It checks whether it is quoting your own prompt.** On one real price ladder, the wording
+  the frame generator wrote into the options gave an elasticity of -1.43 and said cut the
+  rate, while neutral wording of the same length gave -0.09 and said raise it, on identical
+  inputs. JevFish now refuses frames that describe one option in terms of another, and
+  reports whether a comparison survives neutral wording.
+
+The full write-up, including the experiments that failed, is in
+[jevfish/docs/research/calibration-experiment.md](jevfish/docs/research/calibration-experiment.md).
+
+## Install
+
+| | Command | Size |
+|---|---|---|
+| Just the predictor | `uvx jevfish serve` | 27 MB |
+| With PDF seed upload | `uv tool install 'jevfish[pdf]'` | plus 5 MB |
+| With the OASIS social feed | `uv tool install 'jevfish[oasis]'` | about 1 GB |
+| Everything | `uv tool install 'jevfish[all]'` | about 1 GB |
+
+The OASIS extra is large because it pulls a machine-learning stack that the prediction
+itself never uses. The default `lite` platform gives the same prediction without the
+simulated social feed, so start there.
+
+No `uv`? `curl -LsSf https://astral.sh/uv/install.sh | sh`, or use `pipx install jevfish`.
+
+You need a [TypeSafe](https://console.typesafe.ai/settings/keys) key and any
+OpenAI-compatible key (a free Google Gemini key works). The app asks for both on first run
+and checks them before spending anything.
+
+### Mac, without a terminal
+
+Download `JevFish-macos.dmg` from the
+[latest release](https://github.com/markiewee/jevfish/releases/latest), drag it to
+Applications and open it. It is not code-signed, so the first launch needs System Settings,
+Privacy and Security, Open Anyway. If that annoys you, `uvx jevfish serve` does the same
+thing in one line with no dialog.
+
+## Recording what actually happened
+
+This is the part that turns a plausible number into a trustworthy one.
 
 ```bash
-# Install Node dependencies (root + frontend)
-npm run setup
-
-# Install Python dependencies (backend, auto-creates virtual environment)
-npm run setup:backend
+jevfish anchor add --question "..." --option "MYR 300" \
+  --predicted 0.568 --actual 0.892 --n 801
+jevfish anchor list
 ```
 
-#### 3. Start Services
+| Outcomes on file | What you get |
+|---|---|
+| 0 | an uncalibrated number, labelled as such |
+| 1 | a fitted level shift |
+| 5 | level plus scale, so the shape is corrected too |
+| 9 | a distribution-free 90 percent interval |
+| about 70 | near-optimal decisions, by the published evidence |
+
+Anchors record the model version they were fitted against, because the same prompt gives
+different answers across versions and a calibration must not silently transfer.
+
+## Developing
 
 ```bash
-# Start both frontend and backend (run from project root)
-npm run dev
+git clone https://github.com/markiewee/jevfish
+cd jevfish/jevfish
+uv sync
+uv run pytest -q          # 158 pass, 4 skip without the optional extras
+uv sync --all-extras && uv run pytest -q   # 175 pass
 ```
 
-**Service URLs:**
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:5001`
+Nothing in the test suite needs API keys. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-**Start Individually:**
+## Credits and licence
 
-```bash
-npm run backend   # Start backend only
-npm run frontend  # Start frontend only
-```
+JevFish is a rebuild of the five-stage pipeline from
+**[MiroFish](https://github.com/666ghj/MiroFish)** by 666ghj, running on a different
+decision engine.
 
-### Option 2: Docker Deployment
+**Modifications by Mark Wee, from 17 September 2026.** The `jevfish/` tree is new work. The
+upstream `backend/`, `frontend/`, `locales/`, `scripts/` and `static/` trees are unmodified
+and kept for reference. MiroFish's own README is preserved at
+[docs/UPSTREAM-README.md](docs/UPSTREAM-README.md).
 
-```bash
-# 1. Configure environment variables (same as source deployment)
-cp .env.example .env
+### Licence
 
-# 2. Pull image and start
-docker compose up -d
-```
+JevFish is licensed **AGPL-3.0-or-later**, inherited from MiroFish. In plain terms:
 
-Reads `.env` from root directory by default, maps ports `3000 (frontend) / 5001 (backend)`
+- You may use, study, change and redistribute it.
+- If you distribute a modified version you must release your changes under the same
+  licence, with a dated notice of what you changed.
+- **Section 13:** if you run a modified JevFish as a service that others reach over a
+  network, you must offer those users the corresponding source of your version. A static
+  replay of a finished run is not covered, because nothing is accepting requests.
 
-> Mirror address for faster pulling is provided as comments in `docker-compose.yml`, replace if needed.
-
-## 📬 Join the Conversation
-
-<div align="center">
-<img src="./static/image/QQ群.png" alt="QQ Group" width="60%"/>
-</div>
-
-&nbsp;
-
-The MiroFish team is recruiting full-time/internship positions. If you're interested in multi-agent simulation and LLM applications, feel free to send your resume to: **mirofish@shanda.com**
-
-## 📄 Acknowledgments
-
-**MiroFish has received strategic support and incubation from Shanda Group!**
-
-MiroFish's simulation engine is powered by **[OASIS (Open Agent Social Interaction Simulations)](https://github.com/camel-ai/oasis)**, We sincerely thank the CAMEL-AI team for their open-source contributions!
-
-## 📈 Project Statistics
-
-<a href="https://github.com/666ghj/MiroFish">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="static/image/star-history-dark.svg" />
-   <source media="(prefers-color-scheme: light)" srcset="static/image/star-history-light.svg" />
-   <img alt="666ghj/MiroFish Star History Chart" src="static/image/star-history-light.svg" />
- </picture>
-</a>
+Full text in [LICENSE](LICENSE). Third-party components are listed in
+[THIRD_PARTY.md](THIRD_PARTY.md), and the copyright notice is in [NOTICE](NOTICE).
