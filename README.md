@@ -9,18 +9,23 @@
 ## See it work before you sign up for anything
 
 ```bash
-JEVFISH_FAKE_JUDGE=1 JEVFISH_FAKE_LLM=1 uvx jevfish demo --platform lite
+uv tool install "git+https://github.com/markiewee/jevfish#subdirectory=jevfish"
+JEVFISH_FAKE_JUDGE=1 JEVFISH_FAKE_LLM=1 jevfish demo --platform lite
 ```
 
 About ten seconds, no API keys, no account. It runs all five stages on deterministic
 stand-in answers and prints a real report. Then, with keys:
 
 ```bash
-uvx jevfish serve
+jevfish serve
 ```
 
-That is the whole install. It opens in your browser and asks for two keys on screen. No
-clone, no Node, no Homebrew.
+It opens in your browser and asks for the two keys on screen. No clone, no Node, no
+Homebrew, 27 MB.
+
+> `uvx jevfish` will be the install line once the PyPI name is published. The name is
+> reserved but not yet claimed, so until then use the `git+` form above, which is the one
+> tested on every commit.
 
 ## What it does
 
@@ -60,12 +65,17 @@ The full write-up, including the experiments that failed, is in
 
 ## Install
 
+Write `GH=git+https://github.com/markiewee/jevfish#subdirectory=jevfish` and then:
+
 | | Command | Size |
 |---|---|---|
-| Just the predictor | `uvx jevfish serve` | 27 MB |
-| With PDF seed upload | `uv tool install 'jevfish[pdf]'` | plus 5 MB |
-| With the OASIS social feed | `uv tool install 'jevfish[oasis]'` | about 1 GB |
-| Everything | `uv tool install 'jevfish[all]'` | about 1 GB |
+| Just the predictor | `uv tool install "$GH"` | **27 MB** |
+| With PDF seed upload | `uv tool install "jevfish[pdf] @ $GH"` | plus 5 MB |
+| With the OASIS social feed | `uv tool install "jevfish[oasis] @ $GH"` | about 1 GB |
+| Everything | `uv tool install "jevfish[all] @ $GH"` | about 1 GB |
+
+Once the package is on PyPI these shorten to `uvx jevfish serve` and
+`uv tool install 'jevfish[oasis]'`.
 
 The OASIS extra is large because it pulls a machine-learning stack that the prediction
 itself never uses. The default `lite` platform gives the same prediction without the
