@@ -162,3 +162,23 @@ def test_app_bundle_is_valid_and_finds_the_repo(tmp_path):
     out.unlink()
     subprocess.run([str(moved / "JevFish.app" / "Contents" / "MacOS" / "JevFish")], env=env, timeout=30, check=True)
     assert out.read_text().strip() == str(repo)
+
+
+@mac_only
+def test_unreadable_folder_hands_over_to_terminal(tmp_path):
+    """macOS blocks apps from reading Desktop, Documents and Downloads: Terminal runs it instead."""
+    import shutil
+
+    repo = tmp_path / "repo"
+    shutil.copytree(APP, repo / "JevFish.app", symlinks=True)
+    script = repo / "jevfish" / "launcher" / "launch.sh"
+    script.parent.mkdir(parents=True)
+    script.write_text("#!/bin/bash\necho hi\n")
+    script.chmod(0o000)  # stands in for the privacy block: it exists but cannot be opened
+    opened = tmp_path / "opened"
+    fake_open = tmp_path / "fake-open"
+    fake_open.write_text('#!/bin/bash\necho "$@" > "%s"\n' % opened)
+    fake_open.chmod(0o755)
+    env = {"HOME": str(tmp_path / "home"), "PATH": "/usr/bin:/bin", "JEVFISH_OPEN_CMD": str(fake_open)}
+    subprocess.run([str(repo / "JevFish.app" / "Contents" / "MacOS" / "JevFish")], env=env, timeout=30, check=True)
+    assert opened.read_text().strip() == f"-a Terminal {script}"

@@ -1322,7 +1322,15 @@ PORTS="${JEVFISH_PORTS:-5055 5056 5057 5058 5059 5060 5061 5062 5063 5064}"
 export PATH="$STATE/bin:$PATH${JEVFISH_EXTRA_PATH-:$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin}"
 
 mkdir -p "$STATE" "$LOGS"
-exec >>"$LOG" 2>&1
+if [ -t 1 ]; then
+  # Started in Terminal, because the folder is somewhere apps may not read. Say so, and
+  # show the progress here as well as in the log.
+  exec > >(tee -a "$LOG") 2>&1
+  echo "JevFish is starting in this window because macOS does not let apps read files in Desktop,"
+  echo "Documents or Downloads. Move the JevFish folder to your home folder for a window-free start."
+else
+  exec >>"$LOG" 2>&1
+fi
 echo "== $(date '+%Y-%m-%d %H:%M:%S') start from $ROOT"
 
 gui() { [ "${JEVFISH_NO_GUI:-}" != "1" ]; }
