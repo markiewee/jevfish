@@ -30,7 +30,11 @@ onMounted(load)
 
 const firstRun = computed(() => saved.value && saved.value.setup_needed && !saved.value.test_mode)
 const savedLlmKey = computed(() => (saved.value ? (provider.value === 'gemini' ? saved.value.gemini_key : saved.value.llm_key) : null))
-const ready = computed(() => health.value && !health.value.setup_needed)
+// Offer to start only when the keys are in place and the last check (if any) passed.
+const ready = computed(() => {
+  if (!health.value || health.value.setup_needed) return false
+  return !checks.value || (checks.value.jev.ok && checks.value.llm.ok)
+})
 
 function savedText(h) {
   if (h === null || h === undefined) return ''
@@ -69,6 +73,7 @@ async function setTestMode(on) {
   formError.value = ''
   busy.value = 'test'
   try {
+    checks.value = null
     saved.value = await api.saveSettings({ test_mode: on })
     await refreshHealth()
   } catch (e) {

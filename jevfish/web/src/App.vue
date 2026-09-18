@@ -32,7 +32,7 @@ const warnings = computed(() => {
   if (!h) return []
   const out = []
   const fake = h.judge === 'fake' || h.llm === 'fake'
-  if (fake) out.push('Fake mode: numbers are noise. The server is running with test stand-ins for Jev or the language model.')
+  if (fake) out.push('Test mode is on, so every number is made up.')
   if (h.judge && h.judge !== 'jev' && h.judge !== 'fake') out.push('Jev is not set up yet. Runs and crowd questions will fail until it is.')
   if (h.llm && h.llm !== 'fake' && String(h.llm).startsWith('missing')) out.push('No language model is set up yet. Graphs, crowds, posts and reports need one.')
   return out
